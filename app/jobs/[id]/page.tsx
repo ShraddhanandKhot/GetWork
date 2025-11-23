@@ -1,7 +1,12 @@
-export default function JobDetails({ params }) {
+interface JobParams {
+  params: {
+    id: string;
+  };
+}
+
+export default function JobDetails({ params }: JobParams) {
   const jobId = params.id;
 
-  // For now using static job data (later will connect backend)
   const job = {
     title: "Cleaner",
     company: "Hotel Sunrise",
@@ -15,15 +20,11 @@ export default function JobDetails({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-
-      {/* Heading */}
       <h1 className="text-3xl font-bold text-green-600 mb-6">
         Job Details 📄
       </h1>
 
-      {/* Job Card */}
       <div className="bg-white p-6 rounded-xl shadow border">
-
         <h2 className="text-2xl font-bold text-gray-800">{job.title}</h2>
         <p className="text-gray-600 text-sm mb-4">{job.company}</p>
 
@@ -33,7 +34,6 @@ export default function JobDetails({ params }) {
           <p><strong>Category:</strong> {job.category}</p>
         </div>
 
-        {/* Description */}
         <div className="mt-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-2">
             Job Description
@@ -41,9 +41,7 @@ export default function JobDetails({ params }) {
           <p className="text-gray-600">{job.description}</p>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-4 mt-6">
-
           <a
             href={`tel:${job.phone}`}
             className="flex-1 text-center py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -54,11 +52,9 @@ export default function JobDetails({ params }) {
           <button className="flex-1 py-3 bg-gray-800 text-white rounded-lg">
             Apply
           </button>
-
         </div>
       </div>
 
-      {/* Footer */}
       <div className="text-center text-gray-600 mt-10">
         © {new Date().getFullYear()} GetWork — Job Details
       </div>
