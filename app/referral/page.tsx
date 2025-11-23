@@ -18,7 +18,7 @@ export default function ReferralPage() {
 
       {/* Heading */}
       <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Refer a Worker 🤝
+        Refer a Worker 
       </h1>
 
       <p className="text-gray-600 mb-6">

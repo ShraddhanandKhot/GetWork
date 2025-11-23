@@ -31,7 +31,7 @@ export default function JobListingPage() {
 
       {/* Page Heading */}
       <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Available Jobs 🔍
+        Available Jobs  
       </h1>
 
       {/* Job Cards */}
@@ -64,7 +64,7 @@ export default function JobListingPage() {
 
       {/* End */}
       <div className="text-center text-gray-600 mt-10">
-        © {new Date().getFullYear()} GetWork — Job Listings
+        © {new Date().getFullYear()} GetWork — Job Listings  Developed By - Shraddhanand Khot
       </div>
     </div>
   );

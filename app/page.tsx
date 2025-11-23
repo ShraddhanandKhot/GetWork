@@ -95,7 +95,7 @@ const Home = () =>{
 
       {/* Footer */}
       <footer className="text-center py-6 bg-white border-t mt-10 text-gray-600">
-        © {new Date().getFullYear()} GetWork — All Rights Reserved.
+        © {new Date().getFullYear()} GetWork — All Rights Reserved. Developed By - Shraddhanand K Khot
       </footer>
     </div>
   );
