@@ -23,19 +23,19 @@ export default function RegisterPage() {
     const body =
       role === "worker"
         ? {
-            name,
-            age: Number(age),
-            skills: skills.split(",").map((s) => s.trim()),
-            location,
-            phone,
-            password,
-          }
+          name,
+          age: Number(age),
+          skills: skills.split(",").map((s) => s.trim()),
+          location,
+          phone,
+          password,
+        }
         : {
-            name,
-            location,
-            phone,
-            password,
-          };
+          name,
+          location,
+          phone,
+          password,
+        };
 
     try {
       const res = await fetch(endpoint, {
@@ -58,27 +58,25 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow">
-        <h2 className="text-3xl font-bold text-center mb-6 text-green-600">
+        <h2 className="text-3xl font-bold text-center mb-6 text-blue-600">
           Create Account
         </h2>
 
         <div className="flex gap-3 mb-6">
           <button
-            className={`flex-1 py-2 rounded-lg ${
-              role === "worker"
-                ? "bg-green-600 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
+            className={`flex-1 py-2 rounded-lg ${role === "worker"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700"
+              }`}
             onClick={() => setRole("worker")}
           >
             Worker
           </button>
           <button
-            className={`flex-1 py-2 rounded-lg ${
-              role === "organization"
-                ? "bg-green-600 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
+            className={`flex-1 py-2 rounded-lg ${role === "organization"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700"
+              }`}
             onClick={() => setRole("organization")}
           >
             Organization
@@ -90,7 +88,7 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="Full Name"
-              className="w-full p-3 border rounded-lg mb-4"
+              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -98,7 +96,7 @@ export default function RegisterPage() {
             <input
               type="number"
               placeholder="Age"
-              className="w-full p-3 border rounded-lg mb-4"
+              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
               value={age}
               onChange={(e) => setAge(e.target.value)}
             />
@@ -106,7 +104,7 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="Skills (Cleaning, Cooking...)"
-              className="w-full p-3 border rounded-lg mb-4"
+              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
               value={skills}
               onChange={(e) => setSkills(e.target.value)}
             />
@@ -114,7 +112,7 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="Location"
-              className="w-full p-3 border rounded-lg mb-4"
+              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
@@ -126,7 +124,7 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="Organization Name"
-              className="w-full p-3 border rounded-lg mb-4"
+              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -134,7 +132,7 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="Location"
-              className="w-full p-3 border rounded-lg mb-4"
+              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
@@ -144,7 +142,7 @@ export default function RegisterPage() {
         <input
           type="text"
           placeholder="Phone Number"
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
@@ -152,21 +150,21 @@ export default function RegisterPage() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         <button
-          className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-green-700"
           onClick={handleRegister}
         >
           Register
         </button>
 
-        <p className="text-center mt-4 text-sm">
+        <p className="text-center mt-4 text-black">
           Already have an account?{" "}
-          <a href="/login" className="text-green-600 font-semibold">
+          <a href="/login" className="text-blue-600 font-semibold">
             Login
           </a>
         </p>

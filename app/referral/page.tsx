@@ -18,11 +18,11 @@ export default function ReferralPage() {
 
       {/* Heading */}
       <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Refer a Worker 
+        Refer a Worker
       </h1>
 
       <p className="text-gray-600 mb-6">
-        Help someone get a job by uploading their profile.  
+        Help someone get a job by uploading their profile.
         If they get hired, you will earn a badge!
       </p>
 
@@ -32,7 +32,8 @@ export default function ReferralPage() {
         <input
           type="text"
           placeholder="Worker Name"
-          className="w-full p-3 border rounded-lg mb-3"
+          className="w-full p-3 border rounded-lg mb-3 placeholder-gray-600 text-gray-900"
+
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -40,7 +41,7 @@ export default function ReferralPage() {
         <input
           type="number"
           placeholder="Age"
-          className="w-full p-3 border rounded-lg mb-3"
+          className="w-full p-3 border rounded-lg mb-3 placeholder-gray-600 text-gray-900"
           value={age}
           onChange={(e) => setAge(e.target.value)}
         />
@@ -48,7 +49,7 @@ export default function ReferralPage() {
         <input
           type="text"
           placeholder="Skills (Cleaning, Cooking...)"
-          className="w-full p-3 border rounded-lg mb-3"
+          className="w-full p-3 border rounded-lg mb-3 placeholder-gray-600 text-gray-900"
           value={skills}
           onChange={(e) => setSkills(e.target.value)}
         />
@@ -56,7 +57,7 @@ export default function ReferralPage() {
         <input
           type="text"
           placeholder="Location"
-          className="w-full p-3 border rounded-lg mb-3"
+          className="w-full p-3 border rounded-lg mb-3 placeholder-gray-600 text-gray-900"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
         />
@@ -64,7 +65,7 @@ export default function ReferralPage() {
         <input
           type="text"
           placeholder="Phone Number"
-          className="w-full p-3 border rounded-lg mb-3"
+          className="w-full p-3 border rounded-lg mb-3 placeholder-gray-600 text-gray-900"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
@@ -72,7 +73,7 @@ export default function ReferralPage() {
         <input
           type="text"
           placeholder="Experience (Optional)"
-          className="w-full p-3 border rounded-lg mb-5"
+          className="w-full p-3 border rounded-lg mb-5 placeholder-gray-600 text-gray-900"
           value={experience}
           onChange={(e) => setExperience(e.target.value)}
         />

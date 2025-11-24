@@ -49,28 +49,26 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow">
-        <h2 className="text-3xl font-bold text-center mb-6 text-green-600">
+        <h2 className="text-3xl font-bold text-center mb-6 text-blue-600">
           Login to GetWork
         </h2>
 
         <div className="flex gap-3 mb-6">
           <button
-            className={`flex-1 py-2 rounded-lg ${
-              role === "worker"
-                ? "bg-green-600 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
+            className={`flex-1 py-2 rounded-lg ${role === "worker"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700"
+              }`}
             onClick={() => setRole("worker")}
           >
             Worker
           </button>
 
           <button
-            className={`flex-1 py-2 rounded-lg ${
-              role === "organization"
-                ? "bg-green-600 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
+            className={`flex-1 py-2 rounded-lg ${role === "organization"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700"
+              }`}
             onClick={() => setRole("organization")}
           >
             Organization
@@ -80,7 +78,7 @@ export default function LoginPage() {
         <input
           type="text"
           placeholder="Phone Number"
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
@@ -88,21 +86,21 @@ export default function LoginPage() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         <button
-          className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           onClick={handleLogin}
         >
           Login
         </button>
 
-        <p className="text-center mt-4 text-sm">
+        <p className="text-center mt-4 text-black">
           Don’t have an account?{" "}
-          <a href="/register" className="text-green-600 font-semibold">
+          <a href="/register" className="text-blue-600 font-semibold">
             Register
           </a>
         </p>

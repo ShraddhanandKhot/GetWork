@@ -1,11 +1,11 @@
 interface JobParams {
-  params: {
-    id: string;
+  params?: {
+    id?: string;
   };
 }
 
 export default function JobDetails({ params }: JobParams) {
-  const jobId = params.id;
+  const jobId = params?.id ?? "unknown";
 
   const job = {
     title: "Cleaner",
@@ -14,14 +14,14 @@ export default function JobDetails({ params }: JobParams) {
     salary: "₹12,000 - ₹15,000",
     category: "Housekeeping",
     description:
-      "We are hiring a full-time cleaner for our hotel. Responsibilities include room cleaning, dusting, mopping, and maintaining hygiene standards. No experience required.",
+      "We are hiring a full-time cleaner for our hotel. Responsibilities include room cleaning, dusting, mopping, and maintaining hygiene standards.",
     phone: "9876543210",
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Job Details 
+      <h1 className="text-3xl font-bold text-green-600 mb-6">
+        Job Details 📄 — {jobId}
       </h1>
 
       <div className="bg-white p-6 rounded-xl shadow border">
@@ -53,10 +53,6 @@ export default function JobDetails({ params }: JobParams) {
             Apply
           </button>
         </div>
-      </div>
-
-      <div className="text-center text-gray-600 mt-10">
-        © {new Date().getFullYear()} GetWork — Job Details
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ export default function JobListingPage() {
 
       {/* Page Heading */}
       <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Available Jobs  
+        Available Jobs
       </h1>
 
       {/* Job Cards */}
@@ -41,8 +41,8 @@ export default function JobListingPage() {
             key={job.id}
             className="p-5 bg-white rounded-xl shadow border"
           >
-            <h2 className="text-xl font-bold">{job.title}</h2>
-            <p className="text-gray-600 text-sm">
+            <h2 className="text-gray-600 font-bold">{job.title}</h2>
+            <p className="text-gray-900 text-sm">
               {job.company}
             </p>
 
