@@ -1,8 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
 
+interface WorkerProfile {
+  name: string;
+  age: number;
+  skills: string[];
+  location: string;
+  phone: string;
+}
+
 export default function WorkerDashboard() {
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<WorkerProfile | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -39,7 +47,7 @@ export default function WorkerDashboard() {
     <div className="min-h-screen bg-gray-50 p-6">
 
       <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Welcome, {profile.name} 
+        Welcome, {profile.name}
       </h1>
 
       <div className="bg-white p-5 rounded-xl shadow mb-6">
@@ -55,8 +63,8 @@ export default function WorkerDashboard() {
           <p><strong>Phone:</strong> {profile.phone}</p>
         </div>
 
-        <button 
-          onClick={() => window.location.href = "/worker/edit"} 
+        <button
+          onClick={() => window.location.href = "/worker/edit"}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
         >
           Edit Profile
