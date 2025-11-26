@@ -2,9 +2,23 @@
 import { useEffect, useState } from "react";
 import Notifications from "../components/Notifications";
 
+interface Organization {
+  name: string;
+  location: string;
+  phone: string;
+  email: string;
+}
+
+interface Job {
+  _id: string;
+  title: string;
+  location: string;
+  salaryRange: string;
+}
+
 export default function OrganizationDashboard() {
-  const [org, setOrg] = useState(null);
-  const [jobs, setJobs] = useState([]);
+  const [org, setOrg] = useState<Organization | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
 
   const [form, setForm] = useState({
