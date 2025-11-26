@@ -2,8 +2,19 @@
 
 import { useEffect, useState } from "react";
 
+interface Job {
+  _id: string;
+  title: string;
+  orgId: {
+    name: string;
+  };
+  location: string;
+  salaryRange: string;
+  category: string;
+}
+
 export default function JobsPage() {
-  const [jobs, setJobs] = useState([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
 
   useEffect(() => {
     async function loadJobs() {
