@@ -189,7 +189,7 @@ export default function OrganizationDashboard() {
             <textarea
               className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
               placeholder="Description"
-              rows="4"
+              rows={4}
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
