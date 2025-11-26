@@ -1,71 +1,48 @@
-export default function JobListingPage() {
-  const jobs = [
-    {
-      id: 1,
-      title: "Cleaner",
-      company: "Hotel Sunrise",
-      location: "Pune City",
-      salary: "₹12,000 - ₹15,000",
-      category: "Housekeeping",
-    },
-    {
-      id: 2,
-      title: "Kitchen Helper",
-      company: "Food Plaza Restaurant",
-      location: "Pune Camp",
-      salary: "₹10,000 - ₹12,500",
-      category: "Restaurant Staff",
-    },
-    {
-      id: 3,
-      title: "Security Guard",
-      company: "Galaxy Mall",
-      location: "Pune Hadapsar",
-      salary: "₹14,000 - ₹18,000",
-      category: "Security",
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function JobsPage() {
+  const [jobs, setJobs] = useState([]);
+
+  useEffect(() => {
+    async function loadJobs() {
+      const res = await fetch("https://getwork-backend.onrender.com/api/jobs");
+      const data = await res.json();
+
+      if (data.success) setJobs(data.jobs);
     }
-  ];
+
+    loadJobs();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      <h1 className="text-3xl font-bold text-blue-600 mb-6">Available Jobs</h1>
 
-      {/* Page Heading */}
-      <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Available Jobs
-      </h1>
-
-      {/* Job Cards */}
-      <div className="space-y-4">
-        {jobs.map((job) => (
+      {jobs.length === 0 ? (
+        <p className="text-gray-600">No jobs available yet.</p>
+      ) : (
+        jobs.map((job) => (
           <div
-            key={job.id}
-            className="p-5 bg-white rounded-xl shadow border"
+            key={job._id}
+            className="p-4 mb-4 bg-white shadow rounded-lg border"
           >
-            <h2 className="text-gray-600 font-bold">{job.title}</h2>
-            <p className="text-gray-900 text-sm">
-              {job.company}
-            </p>
-
-            <div className="mt-2 text-gray-700 text-sm">
-              <p><strong>Location:</strong> {job.location}</p>
-              <p><strong>Salary:</strong> {job.salary}</p>
-              <p><strong>Category:</strong> {job.category}</p>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-700">{job.title}</h2>
+            <p className="text-gray-700">{job.orgId.name}</p>
+            <p className="text-gray-700">{job.location}</p>
+            <p className="text-gray-600">${job.salaryRange}</p>
+            <p className="text-sm text-gray-500">{job.category}</p>
 
             <a
-              href={`/jobs/${job.id}`}
-              className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg"
+              href={`/jobs/${job._id}`}
+              className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg"
             >
-              View Job
+              View Details
             </a>
           </div>
-        ))}
-      </div>
-
-      {/* End */}
-      <div className="text-center text-gray-600 mt-10">
-        © {new Date().getFullYear()} GetWork — Job Listings  Developed By - Shraddhanand Khot
-      </div>
+        ))
+      )}
     </div>
   );
 }

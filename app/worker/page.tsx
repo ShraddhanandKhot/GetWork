@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Notifications from "../components/Notifications";
 
 interface WorkerProfile {
   name: string;
@@ -22,7 +23,7 @@ export default function WorkerDashboard() {
 
     async function fetchProfile() {
       try {
-        const res = await fetch("http://localhost:5000/api/worker/profile", {
+        const res = await fetch("https://getwork-backend.onrender.com/api/worker/profile", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -49,6 +50,8 @@ export default function WorkerDashboard() {
       <h1 className="text-3xl font-bold text-blue-600 mb-6">
         Welcome, {profile.name}
       </h1>
+
+      <Notifications />
 
       <div className="bg-white p-5 rounded-xl shadow mb-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800">

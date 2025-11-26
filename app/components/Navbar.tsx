@@ -1,13 +1,15 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { isLoggedIn, logout } = useAuth();
 
   return (
     <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-      
+
       {/* Logo */}
       <Link href="/">
         <h1 className="text-2xl font-bold text-blue-600 cursor-pointer">
@@ -25,11 +27,10 @@ export default function Navbar() {
 
       {/* Links */}
       <div
-        className={`${
-          open ? "block" : "hidden"
-        } md:flex md:items-center md:gap-6 absolute md:static bg-white left-0 w-full md:w-auto top-16 md:top-auto p-6 md:p-0 shadow md:shadow-none`}
+        className={`${open ? "block" : "hidden"
+          } md:flex md:items-center md:gap-6 absolute md:static bg-white left-0 w-full md:w-auto top-16 md:top-auto p-6 md:p-0 shadow md:shadow-none`}
       >
-        <Link href ="/" className="block py-2 md:py-0 text-gray-700">Home</Link>
+        <Link href="/" className="block py-2 md:py-0 text-gray-700">Home</Link>
         <Link href="/jobs" className="block py-2 md:py-0 text-gray-700">
           Jobs
         </Link>
@@ -46,11 +47,20 @@ export default function Navbar() {
           Organization Dashboard
         </Link>
 
-        <Link href="http://localhost:3000/login">
-          <button className="mt-2 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg">
-            Login
+        {isLoggedIn ? (
+          <button
+            onClick={logout}
+            className="mt-2 md:mt-0 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Logout
           </button>
-        </Link>
+        ) : (
+          <Link href="/login">
+            <button className="mt-2 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg">
+              Login
+            </button>
+          </Link>
+        )}
       </div>
     </nav>
   );

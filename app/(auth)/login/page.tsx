@@ -1,16 +1,18 @@
 "use client";
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
   const [role, setRole] = useState("worker");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     const endpoint =
       role === "worker"
-        ? "http://localhost:5000/api/worker/login"
-        : "http://localhost:5000/api/org/login";
+        ? "https://getwork-backend.onrender.com/api/worker/login"
+        : "https://getwork-backend.onrender.com/api/org/login";
 
     try {
       const res = await fetch(endpoint, {
@@ -27,9 +29,8 @@ export default function LoginPage() {
       }
 
       // Save token to localStorage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", role);
       localStorage.setItem("name", role === "worker" ? data.user.name : data.org.name);
+      login(data.token, role);
 
       alert("Login Successful!");
 

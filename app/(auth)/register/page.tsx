@@ -17,8 +17,8 @@ export default function RegisterPage() {
   const handleRegister = async () => {
     const endpoint =
       role === "worker"
-        ? "http://localhost:5000/api/worker/register"
-        : "http://localhost:5000/api/org/register";
+        ? "https://getwork-backend.onrender.com/api/worker/register"
+        : "https://getwork-backend.onrender.com/api/org/register";
 
     const body =
       role === "worker"

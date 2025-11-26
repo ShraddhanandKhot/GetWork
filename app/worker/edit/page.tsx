@@ -14,7 +14,7 @@ export default function EditWorker() {
     const token = localStorage.getItem("token");
 
     async function loadProfile() {
-      const res = await fetch("http://localhost:5000/api/worker/profile", {
+      const res = await fetch("https://getwork-backend.onrender.com/api/worker/profile", {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -36,7 +36,7 @@ export default function EditWorker() {
   const handleUpdate = async () => {
     const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/api/worker/update", {
+    const res = await fetch("https://getwork-backend.onrender.com/api/worker/update", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
