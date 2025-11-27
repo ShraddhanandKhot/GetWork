@@ -16,6 +16,16 @@ interface Job {
   salaryRange: string;
 }
 
+type JobType = {
+  _id: string;
+  title: string;
+  description: string;
+  salaryRange: string;
+  location: string;
+  category: string;
+};
+
+
 export default function OrganizationDashboard() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -119,7 +129,7 @@ export default function OrganizationDashboard() {
     }
   };
 
-  const startEdit = (job) => {
+  const startEdit = (job: JobType) => {
     setShowPostForm(true);
     setForm({
       title: job.title,
