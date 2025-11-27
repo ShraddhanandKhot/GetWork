@@ -20,6 +20,8 @@ export default function OrganizationDashboard() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
+  const [editingJobId, setEditingJobId] = useState(null);
+
 
   const [form, setForm] = useState({
     title: "",
@@ -63,8 +65,14 @@ export default function OrganizationDashboard() {
   const postJob = async () => {
     const token = localStorage.getItem("token");
 
-    const res = await fetch("https://getwork-backend.onrender.com/api/jobs/create-job", {
-      method: "POST",
+    const url = editingJobId
+      ? `https://getwork-backend.onrender.com/api/jobs/${editingJobId}`
+      : `https://getwork-backend.onrender.com/api/jobs/create-job`;
+
+    const method = editingJobId ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -77,29 +85,52 @@ export default function OrganizationDashboard() {
 
     if (data.success) {
       setShowPostForm(false);
-      setForm({
-        title: "",
-        description: "",
-        salaryRange: "",
-        location: "",
-        category: "",
-      });
+      setEditingJobId(null);
 
-      // reload jobs
-      const jobsRes = await fetch("https://getwork-backend.onrender.com/api/jobs/my-jobs", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // refresh job list
+      const jobsRes = await fetch(
+        `https://getwork-backend.onrender.com/api/jobs/my-jobs`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
       const jobsData = await jobsRes.json();
-      if (jobsData.success && Array.isArray(jobsData.jobs)) {
-        setJobs(jobsData.jobs);
-      }
-      else {
-        setJobs([])
-      }
-
-
+      setJobs(jobsData.jobs);
     }
   };
+
+  const deleteJob = async (id) => {
+    const token = localStorage.getItem("token");
+
+    if (!confirm("Are you sure you want to delete this job?")) return;
+
+    const res = await fetch(
+      `https://getwork-backend.onrender.com/api/jobs/${id}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const data = await res.json();
+    alert(data.message);
+
+    if (data.success) {
+      setJobs(jobs.filter((job) => job._id !== id));
+    }
+  };
+
+  const startEdit = (job) => {
+    setShowPostForm(true);
+    setForm({
+      title: job.title,
+      description: job.description,
+      salaryRange: job.salaryRange,
+      location: job.location,
+      category: job.category,
+    });
+    setEditingJobId(job._id);
+  };
+
 
   if (!org) return <p className="p-6">Loading...</p>;
 
@@ -145,10 +176,28 @@ export default function OrganizationDashboard() {
               <h3 className="font-bold text-gray-600">{job.title}</h3>
               <p className="text-sm text-gray-600">{job.location}</p>
               <p className="text-sm text-gray-700">{job.salaryRange}</p>
+
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => startEdit(job)}
+                  className="px-3 py-1 bg-yellow-500 text-white rounded"
+                >
+                  Edit
+                </button>
+
+                <button
+                  onClick={() => deleteJob(job._id)}
+                  className="px-3 py-1 bg-red-600 text-white rounded"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))
         )}
       </div>
+
+
 
       {/* JOB POST FORM */}
       {showPostForm && (
