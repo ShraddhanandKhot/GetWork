@@ -1,57 +1,40 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
-  const [role, setRole] = useState("worker");
-
-  // Worker fields
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [skills, setSkills] = useState("");
-  const [location, setLocation] = useState("");
-
-  // Common fields
+  const router = useRouter();
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    const endpoint =
-      role === "worker"
-        ? "https://getwork-backend.onrender.com/api/worker/register"
-        : "https://getwork-backend.onrender.com/api/org/register";
+    if (!phone || !password) {
+      alert("Phone and Password are required");
+      return;
+    }
 
-    const body =
-      role === "worker"
-        ? {
-          name,
-          age: Number(age),
-          skills: skills.split(",").map((s) => s.trim()),
-          location,
-          phone,
-          password,
-        }
-        : {
-          name,
-          location,
-          phone,
-          password,
-        };
-
+    setLoading(true);
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch("https://getwork-backend.onrender.com/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ email, phone, password }),
       });
 
       const data = await res.json();
-      alert(data.message);
 
       if (data.success) {
-        window.location.href = "/login";
+        alert("Account created successfully! Please login.");
+        router.push("/login");
+      } else {
+        alert(data.message || "Registration failed");
       }
     } catch (err) {
       alert("Server not reachable");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,82 +45,13 @@ export default function RegisterPage() {
           Create Account
         </h2>
 
-        <div className="flex gap-3 mb-6">
-          <button
-            className={`flex-1 py-2 rounded-lg ${role === "worker"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-            onClick={() => setRole("worker")}
-          >
-            Worker
-          </button>
-          <button
-            className={`flex-1 py-2 rounded-lg ${role === "organization"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-            onClick={() => setRole("organization")}
-          >
-            Organization
-          </button>
-        </div>
-
-        {role === "worker" && (
-          <>
-            <input
-              type="text"
-              placeholder="Full Name"
-              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <input
-              type="number"
-              placeholder="Age"
-              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-            />
-
-            <input
-              type="text"
-              placeholder="Skills (Cleaning, Cooking...)"
-              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-              value={skills}
-              onChange={(e) => setSkills(e.target.value)}
-            />
-
-            <input
-              type="text"
-              placeholder="Location"
-              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </>
-        )}
-
-        {role === "organization" && (
-          <>
-            <input
-              type="text"
-              placeholder="Organization Name"
-              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <input
-              type="text"
-              placeholder="Location"
-              className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </>
-        )}
+        <input
+          type="email"
+          placeholder="Email (Optional)"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <input
           type="text"
@@ -156,10 +70,11 @@ export default function RegisterPage() {
         />
 
         <button
-          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-green-700"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
           onClick={handleRegister}
+          disabled={loading}
         >
-          Register
+          {loading ? "Creating Account..." : "Register"}
         </button>
 
         <p className="text-center mt-4 text-black">
