@@ -98,7 +98,7 @@ export default function OrganizationDashboard() {
     }
   };
 
-  const deleteJob = async (id) => {
+  const deleteJob = async (id: string) => {
     const token = localStorage.getItem("token");
 
     if (!confirm("Are you sure you want to delete this job?")) return;
