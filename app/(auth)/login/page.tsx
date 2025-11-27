@@ -1,52 +1,49 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
+  const [role, setRole] = useState("worker");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
-    if (!identifier || !password) {
-      alert("Please enter Phone/Email and Password");
-      return;
-    }
+    const endpoint =
+      role === "worker"
+        ? "https://getwork-backend.onrender.com/api/worker/login"
+        : "https://getwork-backend.onrender.com/api/org/login";
 
-    setLoading(true);
     try {
-      const res = await fetch("https://getwork-backend.onrender.com/api/auth/login", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ phone, password }),
       });
 
       const data = await res.json();
 
-      if (data.success) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        if (data.user.isProfileComplete) {
-          // Redirect based on role
-          if (data.user.role === "worker") {
-            router.push("/worker");
-          } else if (data.user.role === "organization") {
-            router.push("/organization");
-          } else {
-            router.push("/"); // Fallback
-          }
-        } else {
-          router.push("/onboarding");
-        }
-      } else {
-        alert(data.message || "Login failed");
+      if (!data.success) {
+        alert(data.message);
+        return;
       }
+
+      // Save token to localStorage
+      localStorage.setItem("name", role === "worker" ? data.user.name : data.org.name);
+      login(data.token, role);
+
+      alert("Login Successful!");
+
+      // Redirect based on role
+      if (role === "worker") {
+        window.location.href = "/worker";
+      } else {
+        window.location.href = "/organization";
+      }
+
     } catch (err) {
       alert("Server not reachable");
-    } finally {
-      setLoading(false);
+      console.log(err);
     }
   };
 
@@ -54,15 +51,37 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow">
         <h2 className="text-3xl font-bold text-center mb-6 text-blue-600">
-          Welcome Back
+          Login to GetWork
         </h2>
+
+        <div className="flex gap-3 mb-6">
+          <button
+            className={`flex-1 py-2 rounded-lg ${role === "worker"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700"
+              }`}
+            onClick={() => setRole("worker")}
+          >
+            Worker
+          </button>
+
+          <button
+            className={`flex-1 py-2 rounded-lg ${role === "organization"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700"
+              }`}
+            onClick={() => setRole("organization")}
+          >
+            Organization
+          </button>
+        </div>
 
         <input
           type="text"
-          placeholder="Phone Number or Email"
+          placeholder="Phone Number"
           className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
         />
 
         <input
@@ -74,15 +93,14 @@ export default function LoginPage() {
         />
 
         <button
-          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           onClick={handleLogin}
-          disabled={loading}
         >
-          {loading ? "Logging in..." : "Login"}
+          Login
         </button>
 
         <p className="text-center mt-4 text-black">
-          Don't have an account?{" "}
+          Don’t have an account?{" "}
           <a href="/register" className="text-blue-600 font-semibold">
             Register
           </a>
