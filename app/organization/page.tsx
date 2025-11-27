@@ -19,10 +19,10 @@ interface Job {
 type JobType = {
   _id: string;
   title: string;
-  description: string;
-  salaryRange: string;
-  location: string;
-  category: string;
+  location?: string;
+  salaryRange?: string;
+  description?: string;
+  category?: string;
 };
 
 
@@ -30,7 +30,8 @@ export default function OrganizationDashboard() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
-  const [editingJobId, setEditingJobId] = useState(null);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+
 
 
   const [form, setForm] = useState({
@@ -131,14 +132,15 @@ export default function OrganizationDashboard() {
 
   const startEdit = (job: JobType) => {
     setShowPostForm(true);
+    setEditingJobId(job._id);
     setForm({
       title: job.title,
-      description: job.description,
-      salaryRange: job.salaryRange,
-      location: job.location,
-      category: job.category,
+      description: job.description || "",
+      salaryRange: job.salaryRange || "",
+      location: job.location || "",
+      category: job.category || "",
     });
-    setEditingJobId(job._id);
+
   };
 
 
