@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, role, logout } = useAuth();
 
   return (
     <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
@@ -39,21 +39,27 @@ export default function Navbar() {
           Referral
         </Link>
 
-        <Link href="/worker" className="block py-2 md:py-0 text-gray-700">
-          Worker Dashboard
-        </Link>
-
-        <Link href="/organization" className="block py-2 md:py-0 text-gray-700">
-          Organization Dashboard
-        </Link>
-
         {isLoggedIn ? (
-          <button
-            onClick={logout}
-            className="mt-2 md:mt-0 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Logout
-          </button>
+          <>
+            {role === "worker" && (
+              <Link href="/worker" className="block py-2 md:py-0 text-gray-700">
+                Worker Dashboard
+              </Link>
+            )}
+
+            {role === "organization" && (
+              <Link href="/organization" className="block py-2 md:py-0 text-gray-700">
+                Organization Dashboard
+              </Link>
+            )}
+
+            <button
+              onClick={logout}
+              className="mt-2 md:mt-0 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Logout
+            </button>
+          </>
         ) : (
           <Link href="/login">
             <button className="mt-2 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded-lg">
