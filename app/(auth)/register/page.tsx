@@ -12,6 +12,7 @@ export default function RegisterPage() {
 
   // Common fields
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleRegister = async () => {
@@ -28,12 +29,14 @@ export default function RegisterPage() {
           skills: skills.split(",").map((s) => s.trim()),
           location,
           phone,
+          email,
           password,
         }
         : {
           name,
           location,
           phone,
+          email,
           password,
         };
 
@@ -138,6 +141,14 @@ export default function RegisterPage() {
             />
           </>
         )}
+
+        <input
+          type="email"
+          placeholder="Email Address"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <input
           type="text"

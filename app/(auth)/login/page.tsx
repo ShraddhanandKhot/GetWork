@@ -105,6 +105,10 @@ export default function LoginPage() {
             Register
           </a>
         </p>
+        <a href="/forgot-password" className="text-blue-600 text-sm">
+          Forgot Password?
+        </a>
+
       </div>
     </div>
   );

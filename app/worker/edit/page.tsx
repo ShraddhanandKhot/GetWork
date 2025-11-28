@@ -7,7 +7,8 @@ export default function EditWorker() {
     name: "",
     age: "",
     skills: "",
-    location: ""
+    location: "",
+    email: ""
   });
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function EditWorker() {
           age: data.worker.age,
           skills: data.worker.skills.join(", "),
           location: data.worker.location,
+          email: data.worker.email || "",
         });
       }
     }
@@ -61,36 +63,43 @@ export default function EditWorker() {
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
-      <h1 className="text-3xl font-bold mb-6 text-green-600">Edit Profile</h1>
+      <h1 className="text-3xl font-bold mb-6 text-blue-600">Edit Profile</h1>
 
       <div className="bg-white p-6 rounded-xl shadow max-w-md mx-auto">
         <input
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-text-gray-600 text-gray-600"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
 
         <input
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-text-gray-600 text-gray-600"
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
+
+        <input
+          className="w-full p-3 border rounded-lg mb-4 placeholder-text-gray-600 text-gray-600"
           value={form.age}
           onChange={(e) => setForm({ ...form, age: e.target.value })}
         />
 
         <input
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-text-gray-600 text-gray-600"
           value={form.skills}
           onChange={(e) => setForm({ ...form, skills: e.target.value })}
         />
 
         <input
-          className="w-full p-3 border rounded-lg mb-4"
+          className="w-full p-3 border rounded-lg mb-4 placeholder-text-gray-600 text-gray-600"
           value={form.location}
           onChange={(e) => setForm({ ...form, location: e.target.value })}
         />
 
         <button
           onClick={handleUpdate}
-          className="w-full py-3 bg-green-600 text-white rounded-lg"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg"
         >
           Save Changes
         </button>
