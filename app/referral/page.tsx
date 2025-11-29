@@ -17,7 +17,7 @@ export default function ReferralPage() {
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
-  const { login } = useAuth();
+  const { login, isLoggedIn, role, logout } = useAuth();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -91,6 +91,47 @@ export default function ReferralPage() {
     }
   };
 
+
+  // ... (keep existing handlers)
+
+  // If logged in as referral (or worker acting as referral), show profile
+  if (isLoggedIn && role === "referral") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
+            Welcome, Referral Partner!
+          </h2>
+          <p className="text-gray-600 mb-8">
+            You are now logged in. Start referring workers to earn rewards.
+          </p>
+
+          <div className="bg-blue-50 p-4 rounded-lg mb-8">
+            <h3 className="font-semibold text-blue-800 mb-2">Your Stats</h3>
+            <div className="flex justify-between text-sm text-blue-700">
+              <span>Total Referrals:</span>
+              <span className="font-bold">0</span>
+            </div>
+            <div className="flex justify-between text-sm text-blue-700 mt-1">
+              <span>Pending:</span>
+              <span className="font-bold">0</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              logout();
+              router.refresh();
+            }}
+            className="w-full py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
@@ -109,8 +150,8 @@ export default function ReferralPage() {
         <div className="flex border-b border-gray-200">
           <button
             className={`flex-1 py-4 text-center font-medium text-sm focus:outline-none ${activeTab === "login"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
               }`}
             onClick={() => setActiveTab("login")}
           >
@@ -118,8 +159,8 @@ export default function ReferralPage() {
           </button>
           <button
             className={`flex-1 py-4 text-center font-medium text-sm focus:outline-none ${activeTab === "register"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
               }`}
             onClick={() => setActiveTab("register")}
           >
