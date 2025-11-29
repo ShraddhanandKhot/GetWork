@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -19,6 +19,16 @@ export default function ReferralPage() {
 
   const { login, isLoggedIn, role, logout } = useAuth();
   const router = useRouter();
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      const storedName = localStorage.getItem("name");
+      if (storedName) {
+        setUserName(storedName);
+      }
+    }
+  }, [isLoggedIn]);
 
   const handleLogin = async () => {
     const endpoint =
@@ -48,14 +58,14 @@ export default function ReferralPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", sessionRole);
 
+      // Save name if available
+      if (data.user?.name) localStorage.setItem("name", data.user.name);
+      if (data.referral?.name) localStorage.setItem("name", data.referral.name);
+
       // Update context
       login(data.token, sessionRole);
 
       alert("Login Successful as Referral!");
-      // Stay on page or redirect if needed. For now, maybe just refresh or show referral dashboard content?
-      // The requirement says "worker dashboard should not display there".
-      // We are already on the referral page, so we might want to show a "Referral Dashboard" view here eventually.
-      // For now, we'll just reload or keep them here.
       router.refresh();
 
     } catch (err) {
@@ -91,16 +101,13 @@ export default function ReferralPage() {
     }
   };
 
-
-  // ... (keep existing handlers)
-
   // If logged in as referral (or worker acting as referral), show profile
   if (isLoggedIn && role === "referral") {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
-            Welcome, Referral Partner!
+            Welcome, {userName || "Referral Partner"}!
           </h2>
           <p className="text-gray-600 mb-8">
             You are now logged in. Start referring workers to earn rewards.
