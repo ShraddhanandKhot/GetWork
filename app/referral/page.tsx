@@ -103,7 +103,7 @@ export default function ReferralPage() {
 
   // Job State
   const [jobs, setJobs] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0 });
+  const [stats, setStats] = useState<{ total: number; pending: number; badges: string[] }>({ total: 0, pending: 0, badges: [] });
 
   const fetchStats = async () => {
     try {
@@ -117,7 +117,8 @@ export default function ReferralPage() {
         const pendingCount = data.referrals ? data.referrals.filter((r: any) => r.status === 'pending').length : 0;
         setStats({
           total: data.stats.total || 0,
-          pending: pendingCount
+          pending: pendingCount,
+          badges: data.stats.badges || []
         });
       }
     } catch (err) {
@@ -233,6 +234,18 @@ export default function ReferralPage() {
               <span>Pending:</span>
               <span className="font-bold">{stats.pending}</span>
             </div>
+            {stats.badges && stats.badges.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-blue-200">
+                <h4 className="font-semibold text-blue-800 mb-2 text-sm">Badges</h4>
+                <div className="flex flex-wrap gap-2">
+                  {stats.badges.map((badge, idx) => (
+                    <span key={idx} className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded border border-yellow-300">
+                      🏆 {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <button
