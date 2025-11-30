@@ -115,10 +115,83 @@ export default function ReferralPage() {
     }
   }, [isLoggedIn, role]);
 
+  // Referral Modal State
+  const [showModal, setShowModal] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [workerForm, setWorkerForm] = useState({
+    name: "",
+    phone: "",
+    password: "",
+    age: "",
+    skills: "",
+    location: "",
+    experience: "",
+  });
+
+  const openReferralModal = (jobId: string) => {
+    setSelectedJobId(jobId);
+    setShowModal(true);
+  };
+
+  const closeReferralModal = () => {
+    setShowModal(false);
+    setSelectedJobId(null);
+    setWorkerForm({
+      name: "",
+      phone: "",
+      password: "",
+      age: "",
+      skills: "",
+      location: "",
+      experience: "",
+    });
+  };
+
+  const handleReferralSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedJobId) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("https://getwork-backend.onrender.com/api/referral/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          jobId: selectedJobId,
+          workerName: workerForm.name,
+          workerPhone: workerForm.phone,
+          workerPassword: workerForm.password,
+          workerDetails: {
+            age: workerForm.age,
+            skills: workerForm.skills, // Backend handles string splitting if needed, or we can split here
+            location: workerForm.location,
+            experience: workerForm.experience,
+          },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert("Referral Submitted Successfully!");
+        closeReferralModal();
+        // Optionally refresh stats here
+      } else {
+        alert(data.message || "Failed to submit referral");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error during referral submission");
+    }
+  };
+
   // If logged in as referral (or worker acting as referral), show profile
   if (isLoggedIn && role === "referral") {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center mb-12">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
             Welcome, {userName || "Referral Partner"}!
@@ -167,9 +240,7 @@ export default function ReferralPage() {
                   </div>
                   <button
                     className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mt-auto"
-                    onClick={() => {
-                      alert(`Referral flow for ${job.title} coming soon!`);
-                    }}
+                    onClick={() => openReferralModal(job._id)}
                   >
                     Refer a Worker
                   </button>
@@ -178,6 +249,107 @@ export default function ReferralPage() {
             </div>
           )}
         </div>
+
+        {/* Referral Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Refer a Worker</h3>
+                <button onClick={closeReferralModal} className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleReferralSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Worker Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                    value={workerForm.name}
+                    onChange={(e) => setWorkerForm({ ...workerForm, name: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                    value={workerForm.phone}
+                    onChange={(e) => setWorkerForm({ ...workerForm, phone: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Set Password (for Worker)</label>
+                  <input
+                    type="password"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                    value={workerForm.password}
+                    onChange={(e) => setWorkerForm({ ...workerForm, password: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Age</label>
+                    <input
+                      type="number"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                      value={workerForm.age}
+                      onChange={(e) => setWorkerForm({ ...workerForm, age: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Experience</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                      value={workerForm.experience}
+                      onChange={(e) => setWorkerForm({ ...workerForm, experience: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Location</label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                    value={workerForm.location}
+                    onChange={(e) => setWorkerForm({ ...workerForm, location: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Skills (comma separated)</label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                    value={workerForm.skills}
+                    onChange={(e) => setWorkerForm({ ...workerForm, skills: e.target.value })}
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Submit Referral
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
