@@ -101,11 +101,25 @@ export default function ReferralPage() {
     }
   };
 
+  // Job State
+  const [jobs, setJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isLoggedIn && role === "referral") {
+      fetch("https://getwork-backend.onrender.com/api/referral/jobs")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) setJobs(data.jobs);
+        })
+        .catch((err) => console.error(err));
+    }
+  }, [isLoggedIn, role]);
+
   // If logged in as referral (or worker acting as referral), show profile
   if (isLoggedIn && role === "referral") {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center mb-12">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
             Welcome, {userName || "Referral Partner"}!
           </h2>
@@ -134,6 +148,35 @@ export default function ReferralPage() {
           >
             Logout
           </button>
+        </div>
+
+        {/* Jobs Grid */}
+        <div className="w-full max-w-6xl px-4">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Available Jobs to Refer</h3>
+          {jobs.length === 0 ? (
+            <p className="text-gray-500 text-center">No jobs available at the moment.</p>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {jobs.map((job) => (
+                <div key={job._id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-xl font-bold text-blue-600 mb-2">{job.title}</h4>
+                    <p className="text-gray-600 mb-2 font-medium">{job.location}</p>
+                    <p className="text-green-600 font-semibold mb-4">{job.salaryRange}</p>
+                    <p className="text-gray-500 text-sm mb-4 line-clamp-3">{job.description}</p>
+                  </div>
+                  <button
+                    className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mt-auto"
+                    onClick={() => {
+                      alert(`Referral flow for ${job.title} coming soon!`);
+                    }}
+                  >
+                    Refer a Worker
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
