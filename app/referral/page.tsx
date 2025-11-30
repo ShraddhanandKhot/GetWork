@@ -227,8 +227,12 @@ export default function ReferralPage() {
           <div className="bg-blue-50 p-4 rounded-lg mb-8">
             <h3 className="font-semibold text-blue-800 mb-2">Your Stats</h3>
             <div className="flex justify-between text-sm text-blue-700">
-              <span>Total Referrals:</span>
-              <span className="font-bold">{stats.total}</span>
+              <span className="font-bold cursor-pointer hover:underline" onClick={() => router.push('/referral/history')}>
+                Total Referrals:
+              </span>
+              <span className="font-bold cursor-pointer hover:underline" onClick={() => router.push('/referral/history')}>
+                {stats.total}
+              </span>
             </div>
             <div className="flex justify-between text-sm text-blue-700 mt-1">
               <span>Pending:</span>
