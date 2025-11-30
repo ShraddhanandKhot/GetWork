@@ -103,6 +103,27 @@ export default function ReferralPage() {
 
   // Job State
   const [jobs, setJobs] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0 });
+
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("https://getwork-backend.onrender.com/api/referral/stats", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Calculate pending from referrals list if not provided directly
+        const pendingCount = data.referrals ? data.referrals.filter((r: any) => r.status === 'pending').length : 0;
+        setStats({
+          total: data.stats.total || 0,
+          pending: pendingCount
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch stats", err);
+    }
+  };
 
   useEffect(() => {
     if (isLoggedIn && role === "referral") {
@@ -112,6 +133,8 @@ export default function ReferralPage() {
           if (data.success) setJobs(data.jobs);
         })
         .catch((err) => console.error(err));
+
+      fetchStats();
     }
   }, [isLoggedIn, role]);
 
@@ -178,7 +201,7 @@ export default function ReferralPage() {
       if (data.success) {
         alert("Referral Submitted Successfully!");
         closeReferralModal();
-        // Optionally refresh stats here
+        fetchStats();
       } else {
         alert(data.message || "Failed to submit referral");
       }
@@ -204,11 +227,11 @@ export default function ReferralPage() {
             <h3 className="font-semibold text-blue-800 mb-2">Your Stats</h3>
             <div className="flex justify-between text-sm text-blue-700">
               <span>Total Referrals:</span>
-              <span className="font-bold">0</span>
+              <span className="font-bold">{stats.total}</span>
             </div>
             <div className="flex justify-between text-sm text-blue-700 mt-1">
               <span>Pending:</span>
-              <span className="font-bold">0</span>
+              <span className="font-bold">{stats.pending}</span>
             </div>
           </div>
 
