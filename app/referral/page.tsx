@@ -128,7 +128,7 @@ export default function ReferralPage() {
   };
 
   useEffect(() => {
-    if (isLoggedIn && role === "referral") {
+    if (isLoggedIn && (role === "referral" || role === "worker")) {
       fetch("https://getwork-backend.onrender.com/api/referral/jobs")
         .then((res) => res.json())
         .then((data) => {
@@ -214,7 +214,7 @@ export default function ReferralPage() {
   };
 
   // If logged in as referral (or worker acting as referral), show profile
-  if (isLoggedIn && role === "referral") {
+  if (isLoggedIn && (role === "referral" || role === "worker")) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center mb-12">
