@@ -1,4 +1,4 @@
-const withPWA = require("next-pwa")({
+/*const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
@@ -11,4 +11,19 @@ module.exports = withPWA({
   experimental: {
     serverActions: true,
   }
+});*/
+
+const withPWA = require("next-pwa")({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
+  buildExcludes: [/middleware-manifest.json$/],
+});
+
+module.exports = withPWA({
+  reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ["react", "next/server"],
+  },
 });
