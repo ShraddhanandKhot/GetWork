@@ -50,9 +50,8 @@ export default function ReferralPage() {
         return;
       }
 
-      // If worker logs in here, we treat them as 'referral' role for the session
-      // to hide the worker dashboard.
-      const sessionRole = "referral";
+      // Use the actual role so workers can see their dashboard
+      const sessionRole = loginRole;
 
       // Save token and forced role
       localStorage.setItem("token", data.token);
