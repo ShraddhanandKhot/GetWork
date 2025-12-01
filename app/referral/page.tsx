@@ -103,7 +103,7 @@ export default function ReferralPage() {
 
   // Job State
   const [jobs, setJobs] = useState<any[]>([]);
-  const [stats, setStats] = useState<{ total: number; pending: number; badges: string[] }>({ total: 0, pending: 0, badges: [] });
+  const [stats, setStats] = useState<{ total: number; points: number; pending: number; badges: string[] }>({ total: 0, points: 0, pending: 0, badges: [] });
 
   const fetchStats = async () => {
     try {
@@ -117,6 +117,7 @@ export default function ReferralPage() {
         const pendingCount = data.referrals ? data.referrals.filter((r: any) => r.status === 'pending').length : 0;
         setStats({
           total: data.stats.total || 0,
+          points: data.stats.successful || 0,
           pending: pendingCount,
           badges: data.stats.badges || []
         });
@@ -228,10 +229,10 @@ export default function ReferralPage() {
             <h3 className="font-semibold text-blue-800 mb-2">Your Stats</h3>
             <div className="flex justify-between text-sm text-blue-700">
               <span className="font-bold cursor-pointer hover:underline" onClick={() => router.push('/referral/history')}>
-                Total Referrals:
+                Referral Points:
               </span>
               <span className="font-bold cursor-pointer hover:underline" onClick={() => router.push('/referral/history')}>
-                {stats.total}
+                {stats.points}
               </span>
             </div>
             <div className="flex justify-between text-sm text-blue-700 mt-1">

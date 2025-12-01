@@ -59,6 +59,7 @@ export default function ReferralHistoryPage() {
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Worker Name</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
@@ -68,6 +69,7 @@ export default function ReferralHistoryPage() {
                                     <tr key={ref._id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ref.workerName}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ref.jobId?.title || "Unknown Job"}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ref.jobId?.orgId?.name || "N/A"}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(ref.createdAt).toLocaleDateString()}
                                         </td>
