@@ -220,9 +220,20 @@ export default function OrganizationDashboard() {
             <input
               className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
               placeholder="Job Title"
+              list="job-titles"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
+            <datalist id="job-titles">
+              <option value="Cleaning" />
+              <option value="Sweeper" />
+              <option value="Cook" />
+              <option value="Driver" />
+              <option value="Gardener" />
+              <option value="Nanny" />
+              <option value="Security Guard" />
+              <option value="Other" />
+            </datalist>
 
             <input
               className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
@@ -232,8 +243,9 @@ export default function OrganizationDashboard() {
             />
 
             <input
+              type="number"
               className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
-              placeholder="Salary Range"
+              placeholder="Salary (Amount)"
               value={form.salaryRange}
               onChange={(e) =>
                 setForm({ ...form, salaryRange: e.target.value })
