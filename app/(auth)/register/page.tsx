@@ -28,14 +28,14 @@ export default function RegisterPage() {
           age: Number(age),
           skills: skills.split(",").map((s) => s.trim()),
           location,
-          phone,
+          phone: phone.replace(/^0+/, ""),
           email,
           password,
         }
         : {
           name,
           location,
-          phone,
+          phone: phone.replace(/^0+/, ""),
           email,
           password,
         };

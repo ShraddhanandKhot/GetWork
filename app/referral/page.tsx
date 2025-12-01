@@ -40,7 +40,7 @@ export default function ReferralPage() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: loginPhone, password: loginPassword }),
+        body: JSON.stringify({ phone: loginPhone.replace(/^0+/, ""), password: loginPassword }),
       });
 
       const data = await res.json();
@@ -81,7 +81,7 @@ export default function ReferralPage() {
         body: JSON.stringify({
           name: regName,
           email: regEmail,
-          phone: regPhone,
+          phone: regPhone.replace(/^0+/, ""),
           password: regPassword,
         }),
       });
@@ -186,7 +186,7 @@ export default function ReferralPage() {
         body: JSON.stringify({
           jobId: selectedJobId,
           workerName: workerForm.name,
-          workerPhone: workerForm.phone,
+          workerPhone: workerForm.phone.replace(/^0+/, ""),
           workerPassword: workerForm.password,
           workerDetails: {
             age: workerForm.age,

@@ -18,7 +18,7 @@ export default function LoginPage() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ phone: phone.replace(/^0+/, ""), password }),
       });
 
       const data = await res.json();
