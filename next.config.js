@@ -1,26 +1,23 @@
 /** @type {import('next').NextConfig} */
 
-const withPWA = require("next-pwa")({
+const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   register: true,
   skipWaiting: true,
-  // disable: process.env.NODE_ENV === "development",
+  disable: false,
   buildExcludes: [/middleware-manifest\.json$/],
   fallbacks: {
     document: "/offline.html",
   },
 });
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
     optimizePackageImports: ["react"],
-    turbo: {
-      loaders: {
-        "*.json": ["json-loader"],
-      },
-    },
   },
+  // turbopack: {},
 };
 
 module.exports = withPWA(nextConfig);
