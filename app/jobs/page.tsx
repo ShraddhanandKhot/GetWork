@@ -15,6 +15,7 @@ interface Job {
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [searchLocation, setSearchLocation] = useState("");
 
   useEffect(() => {
     async function loadJobs() {
@@ -27,14 +28,29 @@ export default function JobsPage() {
     loadJobs();
   }, []);
 
+  const filteredJobs = jobs.filter((job) =>
+    job.location.toLowerCase().includes(searchLocation.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <h1 className="text-3xl font-bold text-blue-600 mb-6">Available Jobs</h1>
 
-      {jobs.length === 0 ? (
-        <p className="text-gray-600">No jobs available yet.</p>
+      {/* Search Bar */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search by Location..."
+          className="w-full max-w-md p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          value={searchLocation}
+          onChange={(e) => setSearchLocation(e.target.value)}
+        />
+      </div>
+
+      {filteredJobs.length === 0 ? (
+        <p className="text-gray-600">No jobs found.</p>
       ) : (
-        jobs.map((job) => (
+        filteredJobs.map((job) => (
           <div
             key={job._id}
             className="p-4 mb-4 bg-white shadow rounded-lg border"
