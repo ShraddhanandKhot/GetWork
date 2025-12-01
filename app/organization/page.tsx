@@ -187,7 +187,7 @@ export default function OrganizationDashboard() {
             <div key={job._id} className="p-3 border rounded-lg mb-3">
               <h3 className="font-bold text-gray-600">{job.title}</h3>
               <p className="text-sm text-gray-600">{job.location}</p>
-              <p className="text-sm text-gray-700">{job.salaryRange}</p>
+              <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block text-sm">{job.salaryRange}</p>
 
               <div className="flex gap-3 mt-3">
                 <button

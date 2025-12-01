@@ -36,7 +36,7 @@ export default function JobDetails({ params }: { params: Promise<{ id: string }>
 
       <div className="bg-white p-6 rounded-xl shadow text-gray-900">
         <p><strong>Location:</strong> {job.location}</p>
-        <p><strong>Salary:</strong> {job.salaryRange}</p>
+        <p className="mt-2"><strong className="mr-2">Salary:</strong><span className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block">{job.salaryRange}</span></p>
         <p><strong>Category:</strong> {job.category}</p>
 
         <h2 className="text-xl font-bold mt-4 mb-2">Description</h2>

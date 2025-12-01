@@ -275,7 +275,7 @@ export default function ReferralPage() {
                   <div>
                     <h4 className="text-xl font-bold text-blue-600 mb-2">{job.title}</h4>
                     <p className="text-gray-600 mb-2 font-medium">{job.location}</p>
-                    <p className="text-green-600 font-semibold mb-4">{job.salaryRange}</p>
+                    <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block mb-4">{job.salaryRange}</p>
                     <p className="text-gray-500 text-sm mb-4 line-clamp-3">{job.description}</p>
                   </div>
                   <button

@@ -42,7 +42,7 @@ export default function JobsPage() {
             <h2 className="text-xl font-semibold text-gray-700">{job.title}</h2>
             <p className="text-gray-700">{job.orgId.name}</p>
             <p className="text-gray-700">{job.location}</p>
-            <p className="text-gray-600">₹{job.salaryRange}</p>
+            <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block mt-2">₹{job.salaryRange}</p>
             <p className="text-sm text-gray-500">{job.category}</p>
 
             <a
