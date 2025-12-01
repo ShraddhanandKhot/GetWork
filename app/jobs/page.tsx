@@ -41,7 +41,7 @@ export default function JobsPage() {
         <input
           type="text"
           placeholder="Search by Location..."
-          className="w-full max-w-md p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full max-w-md p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-text-gray-400 text-gray-700"
           value={searchLocation}
           onChange={(e) => setSearchLocation(e.target.value)}
         />
