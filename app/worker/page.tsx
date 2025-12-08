@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Notifications from "../components/Notifications";
+import { useAuth } from "../context/AuthContext";
+import { LogOut } from "lucide-react";
 
 interface WorkerProfile {
   name: string;
@@ -11,6 +13,7 @@ interface WorkerProfile {
 }
 
 export default function WorkerDashboard() {
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
 
   useEffect(() => {
@@ -47,9 +50,18 @@ export default function WorkerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
 
-      <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Welcome, {profile.name}
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-600">
+          Welcome, {profile.name}
+        </h1>
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+        >
+          <LogOut size={18} />
+          <span className="font-medium">Logout</span>
+        </button>
+      </div>
 
       <Notifications />
 

@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import { Home, Briefcase, Users, LayoutDashboard, Building2, LogIn, LogOut } from "lucide-react";
+import { Home, Briefcase, Users, LayoutDashboard, Building2, LogIn } from "lucide-react";
 
 export default function BottomNav() {
     const pathname = usePathname();
-    const { isLoggedIn, role, logout } = useAuth();
+    const { isLoggedIn, role } = useAuth();
 
     const isActive = (path: string) => pathname === path;
 
@@ -44,13 +44,8 @@ export default function BottomNav() {
                 </Link>
             )}
 
-            {/* Login / Logout */}
-            {isLoggedIn ? (
-                <button onClick={logout} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600">
-                    <LogOut size={24} />
-                    <span className="text-[10px] font-medium">Logout</span>
-                </button>
-            ) : (
+            {/* Login (Only if not logged in) */}
+            {!isLoggedIn && (
                 <Link href="/login" className={`flex flex-col items-center gap-1 ${isActive('/login') ? 'text-blue-600' : 'text-gray-500'}`}>
                     <LogIn size={24} />
                     <span className="text-[10px] font-medium">Login</span>

@@ -20,39 +20,43 @@ const Home = () => {
           </p>
         </motion.div>
 
-        <div className="flex justify-center mt-8 gap-4 flex-wrap">
-          <Link href="/jobs">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              animate={{
-                scale: [1, 1.05, 1],
-                boxShadow: [
-                  "0px 0px 0px rgba(37, 99, 235, 0)",
-                  "0px 0px 20px rgba(37, 99, 235, 0.5)",
-                  "0px 0px 0px rgba(37, 99, 235, 0)"
-                ]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "loop"
-              }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl shadow"
-            >
-              Find Jobs
-            </motion.button>
-          </Link>
+        <div className="flex justify-center mt-10">
+          <div className="p-8 border-2 border-blue-600 rounded-3xl bg-blue-50 shadow-[0_0_25px_rgba(37,99,235,0.15)] flex flex-wrap gap-6 justify-center items-center max-w-2xl mx-auto relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-50"></div>
 
-          <Link href="/referral">
-            <motion.button
-              whileHover={{ scale: 1.05, backgroundColor: "#eff6ff" }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 bg-white text-blue-600 border border-blue-600 rounded-xl shadow"
-            >
-              Upload a Worker
-            </motion.button>
-          </Link>
+            <Link href="/jobs">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                animate={{
+                  scale: [1, 1.05, 1],
+                  boxShadow: [
+                    "0px 0px 0px rgba(37, 99, 235, 0)",
+                    "0px 0px 20px rgba(37, 99, 235, 0.5)",
+                    "0px 0px 0px rgba(37, 99, 235, 0)"
+                  ]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "loop"
+                }}
+                className="px-8 py-4 bg-blue-600 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-blue-500/30 transition-shadow"
+              >
+                Find Jobs
+              </motion.button>
+            </Link>
+
+            <Link href="/referral">
+              <motion.button
+                whileHover={{ scale: 1.05, backgroundColor: "#eff6ff" }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-white text-blue-600 font-bold text-lg border-2 border-blue-600 rounded-xl shadow-lg hover:shadow-blue-200 transition-shadow"
+              >
+                Upload a Worker
+              </motion.button>
+            </Link>
+          </div>
         </div>
       </section>
 

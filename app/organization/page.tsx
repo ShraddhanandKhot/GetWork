@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Notifications from "../components/Notifications";
+import { useAuth } from "../context/AuthContext";
+import { LogOut } from "lucide-react";
 
 interface Organization {
   name: string;
@@ -27,6 +29,7 @@ type JobType = {
 
 
 export default function OrganizationDashboard() {
+  const { logout } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
@@ -149,9 +152,18 @@ export default function OrganizationDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
 
-      <h1 className="text-3xl font-bold text-blue-600 mb-6">
-        Welcome, {org.name}
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-600">
+          Welcome, {org.name}
+        </h1>
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+        >
+          <LogOut size={18} />
+          <span className="font-medium">Logout</span>
+        </button>
+      </div>
 
       <Notifications />
 
