@@ -20,12 +20,12 @@ export default function Navbar() {
         </h1>
       </Link>
 
-      {/* Menu Icon (Mobile) */}
+      {/* Menu Icon (Mobile) - Hidden as we use BottomNav */}
       <motion.button
         whileTap={{ scale: 0.9 }}
         animate={{ rotate: open ? 180 : 0 }}
         transition={{ duration: 0.3 }}
-        className="md:hidden text-gray-700"
+        className="hidden md:hidden text-gray-700"
         onClick={() => setOpen(!open)}
       >
         {open ? <X size={28} /> : <Menu size={28} />}

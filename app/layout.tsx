@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
+import BottomNav from "./components/BottomNav";
 import { AuthProvider } from "./context/AuthContext";
 import InstallPrompt from "./components/InstallPrompt";
 
@@ -69,6 +70,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
+          <BottomNav />
           <InstallPrompt />
         </AuthProvider>
       </body>
