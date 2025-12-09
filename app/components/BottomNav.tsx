@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import { Home, Briefcase, Users, LayoutDashboard, Building2, LogIn } from "lucide-react";
+import { Home, Briefcase, Users, User, LogIn } from "lucide-react";
 
 export default function BottomNav() {
     const pathname = usePathname();
@@ -33,14 +33,14 @@ export default function BottomNav() {
             {/* Dashboard (Conditional) */}
             {isLoggedIn && role === 'worker' && (
                 <Link href="/worker" className={`flex flex-col items-center gap-1 ${isActive('/worker') ? 'text-blue-600' : 'text-gray-500'}`}>
-                    <LayoutDashboard size={24} />
-                    <span className="text-[10px] font-medium">Dashboard</span>
+                    <User size={24} />
+                    <span className="text-[10px] font-medium">Profile</span>
                 </Link>
             )}
             {isLoggedIn && role === 'organization' && (
                 <Link href="/organization" className={`flex flex-col items-center gap-1 ${isActive('/organization') ? 'text-blue-600' : 'text-gray-500'}`}>
-                    <Building2 size={24} />
-                    <span className="text-[10px] font-medium">Dashboard</span>
+                    <User size={24} />
+                    <span className="text-[10px] font-medium">Profile</span>
                 </Link>
             )}
 

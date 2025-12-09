@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Search, UserPlus } from "lucide-react";
 import * as motion from "framer-motion/client";
 
 const Home = () => {
@@ -41,9 +42,13 @@ const Home = () => {
                   repeat: Infinity,
                   repeatType: "loop"
                 }}
-                className="px-8 py-4 bg-blue-600 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-blue-500/30 transition-shadow"
+                className="px-8 py-4 bg-blue-600 text-white rounded-xl shadow-lg hover:shadow-blue-500/30 transition-shadow flex items-center gap-3"
               >
-                Find Jobs
+                <Search size={24} />
+                <div className="text-left">
+                  <div className="font-bold text-lg leading-none">Find Jobs</div>
+                  <div className="text-sm font-normal opacity-90">Browse Opportunities</div>
+                </div>
               </motion.button>
             </Link>
 
@@ -51,9 +56,13 @@ const Home = () => {
               <motion.button
                 whileHover={{ scale: 1.05, backgroundColor: "#eff6ff" }}
                 whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-white text-blue-600 font-bold text-lg border-2 border-blue-600 rounded-xl shadow-lg hover:shadow-blue-200 transition-shadow"
+                className="px-8 py-4 bg-white text-blue-600 border-2 border-blue-600 rounded-xl shadow-lg hover:shadow-blue-200 transition-shadow flex items-center gap-3"
               >
-                Upload a Worker
+                <UserPlus size={24} />
+                <div className="text-left">
+                  <div className="font-bold text-lg leading-none">Refer a Worker</div>
+                  <div className="text-sm font-normal opacity-90">Help & Earn</div>
+                </div>
               </motion.button>
             </Link>
           </div>

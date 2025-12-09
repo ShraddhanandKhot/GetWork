@@ -16,7 +16,7 @@ export default function Navbar() {
       {/* Logo */}
       <Link href="/">
         <h1 className="text-2xl font-bold text-blue-600 cursor-pointer flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg">
-          <Briefcase className="text-blue-600" /> GetWork
+          GetWork
         </h1>
       </Link>
 
