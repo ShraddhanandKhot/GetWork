@@ -68,7 +68,7 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                <div className="hidden md:block">
+                <div className="block mt-4 md:mt-0">
                   <Applications />
                 </div>
 
