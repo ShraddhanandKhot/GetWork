@@ -70,6 +70,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
+          <div className="h-24 md:hidden" />
           <BottomNav />
           <InstallPrompt />
         </AuthProvider>
