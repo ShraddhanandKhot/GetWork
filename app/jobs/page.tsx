@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, MapPin, Search, Wallet } from "lucide-react";
+import { Building2, MapPin, Search, Wallet, Briefcase } from "lucide-react";
 
 interface Job {
   _id: string;
@@ -12,6 +12,7 @@ interface Job {
   location: string;
   salaryRange: string;
   category: string;
+  createdAt?: string;
 }
 
 export default function JobsPage() {
@@ -23,7 +24,15 @@ export default function JobsPage() {
       const res = await fetch("https://getwork-backend.onrender.com/api/jobs");
       const data = await res.json();
 
-      if (data.success) setJobs(data.jobs);
+      if (data.success) {
+        // Sort by latest posted first
+        const sortedJobs = data.jobs.sort((a: Job, b: Job) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+          return dateB - dateA;
+        });
+        setJobs(sortedJobs);
+      }
     }
 
     loadJobs();
@@ -36,10 +45,14 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-3xl font-bold text-blue-600 mb-6">Available Jobs</h1>
+      <div className="flex justify-center mb-6">
+        <div className="p-3 bg-blue-100 rounded-full text-blue-600">
+          <Briefcase size={40} />
+        </div>
+      </div>
 
       {/* Search Bar */}
-      <div className="mb-6 relative max-w-md">
+      <div className="mb-6 relative max-w-md mx-auto">
         <input
           type="text"
           placeholder="Search by Title or Location..."
@@ -51,7 +64,7 @@ export default function JobsPage() {
       </div>
 
       {filteredJobs.length === 0 ? (
-        <p className="text-gray-600">No jobs found.</p>
+        <p className="text-gray-600 text-center">No jobs found.</p>
       ) : (
         filteredJobs.map((job) => (
           <div
@@ -94,6 +107,12 @@ export default function JobsPage() {
               >
                 View Details
               </a>
+
+              {job.createdAt && (
+                <p className="text-xs text-center text-gray-400 mt-3">
+                  Posted on {new Date(job.createdAt).toLocaleDateString()}
+                </p>
+              )}
             </div>
           </div>
         ))
