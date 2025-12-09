@@ -1,6 +1,4 @@
-"use client";
 import { useEffect, useState } from "react";
-import Notifications from "../components/Notifications";
 import { useAuth } from "../context/AuthContext";
 import { LogOut } from "lucide-react";
 
@@ -63,7 +61,6 @@ export default function WorkerDashboard() {
         </button>
       </div>
 
-      <Notifications />
 
       <div className="bg-white p-5 rounded-xl shadow mb-6">
         <h2 className="text-xl font-semibold mb-3 text-gray-800">

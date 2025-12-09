@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import Notifications from "../components/Notifications";
 import { useAuth } from "../context/AuthContext";
 import { LogOut } from "lucide-react";
 
@@ -165,7 +164,6 @@ export default function OrganizationDashboard() {
         </button>
       </div>
 
-      <Notifications />
 
       {/* ORG DETAILS */}
       <div className="bg-white p-6 rounded-xl shadow mb-6">

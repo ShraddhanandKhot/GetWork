@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Home, Briefcase, Users, LayoutDashboard, Building2, LogIn, LogOut, Menu, X } from "lucide-react";
 import * as motion from "framer-motion/client";
 import { AnimatePresence } from "framer-motion";
+import Applications from "./Applications";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -66,6 +67,10 @@ export default function Navbar() {
                     <Building2 size={18} /> Organization Dashboard
                   </Link>
                 )}
+
+                <div className="hidden md:block">
+                  <Applications />
+                </div>
 
                 <button
                   onClick={logout}
