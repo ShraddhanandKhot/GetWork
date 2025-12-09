@@ -21,16 +21,23 @@ export default function Navbar() {
         </h1>
       </Link>
 
-      {/* Menu Icon (Mobile) - Hidden as we use BottomNav */}
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        animate={{ rotate: open ? 180 : 0 }}
-        transition={{ duration: 0.3 }}
-        className="hidden md:hidden text-gray-700"
-        onClick={() => setOpen(!open)}
-      >
-        {open ? <X size={28} /> : <Menu size={28} />}
-      </motion.button>
+      <div className="flex items-center gap-4">
+        {/* Mobile Applications Icon */}
+        <div className="md:hidden">
+          {isLoggedIn && <Applications />}
+        </div>
+
+        {/* Menu Icon (Mobile) - Hidden as we use BottomNav */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="hidden md:hidden text-gray-700"
+          onClick={() => setOpen(!open)}
+        >
+          {open ? <X size={28} /> : <Menu size={28} />}
+        </motion.button>
+      </div>
 
       {/* Links */}
       <AnimatePresence>
@@ -68,7 +75,7 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                <div className="block mt-4 md:mt-0">
+                <div className="hidden md:block">
                   <Applications />
                 </div>
 
