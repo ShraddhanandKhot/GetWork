@@ -59,8 +59,11 @@ export default function JobsPage() {
             className="mb-6 bg-white shadow-md rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow"
           >
             {/* Header Section */}
-            <div className="bg-blue-600 px-6 py-4 border-b border-blue-700">
-              <h2 className="text-2xl font-bold text-white">{job.title}</h2>
+            <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex justify-between items-start gap-4">
+              <h2 className="text-2xl font-bold text-blue-900">{job.title}</h2>
+              <span className="text-lg font-semibold text-blue-800 whitespace-nowrap mt-1">
+                ₹{job.salaryRange}
+              </span>
             </div>
 
             {/* Content Section */}
@@ -87,7 +90,7 @@ export default function JobsPage() {
 
               <a
                 href={`/jobs/${job._id}`}
-                className="block w-full text-center py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                className="block w-full text-center py-3 bg-white border border-blue-200 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
               >
                 View Details
               </a>
