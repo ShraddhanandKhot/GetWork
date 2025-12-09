@@ -17,7 +17,7 @@ export default function Navbar() {
 
       {/* Logo */}
       <Link href="/">
-        <div className="flex items-center gap-3 cursor-pointer">
+        <div className="flex items-center gap-0 cursor-pointer">
           <Image
             src="/icons/icon-512x512.png"
             alt="GetWork Logo"
