@@ -53,20 +53,39 @@ export default function JobsPage() {
         filteredJobs.map((job) => (
           <div
             key={job._id}
-            className="p-4 mb-4 bg-white shadow rounded-lg border"
+            className="mb-6 bg-white shadow-md rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow"
           >
-            <h2 className="text-xl font-semibold text-gray-700">{job.title}</h2>
-            <p className="text-gray-700">{job.orgId.name}</p>
-            <p className="text-gray-700">{job.location}</p>
-            <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block mt-2">₹{job.salaryRange}</p>
-            <p className="text-sm text-gray-500">{job.category}</p>
+            {/* Header Section */}
+            <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+              <h2 className="text-2xl font-bold text-blue-900">{job.title}</h2>
+            </div>
 
-            <a
-              href={`/jobs/${job._id}`}
-              className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg"
-            >
-              View Details
-            </a>
+            {/* Content Section */}
+            <div className="p-6">
+              <div className="mb-6 space-y-3">
+                <p className="text-gray-900 font-medium flex items-center gap-2">
+                  <span className="text-blue-600">Company:</span> {job.orgId.name}
+                </p>
+                <p className="text-gray-700 flex items-center gap-2">
+                  <span className="text-gray-400">Location:</span> {job.location}
+                </p>
+                <div>
+                  <span className="bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm inline-block">
+                    ₹{job.salaryRange}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 bg-gray-50 px-2 py-1 rounded inline-block">
+                  {job.category}
+                </p>
+              </div>
+
+              <a
+                href={`/jobs/${job._id}`}
+                className="block w-full text-center py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                View Details
+              </a>
+            </div>
           </div>
         ))
       )}
