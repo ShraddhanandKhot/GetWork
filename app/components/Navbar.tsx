@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Home, Briefcase, Users, LayoutDashboard, Building2, LogIn, LogOut, Menu, X } from "lucide-react";
@@ -16,9 +17,18 @@ export default function Navbar() {
 
       {/* Logo */}
       <Link href="/">
-        <h1 className="text-2xl font-bold text-blue-600 cursor-pointer flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg">
-          GetWork
-        </h1>
+        <div className="flex items-center gap-3 cursor-pointer">
+          <Image
+            src="/icons/icon-512x512.png"
+            alt="GetWork Logo"
+            width={40}
+            height={40}
+            className="w-10 h-10 object-contain"
+          />
+          <h1 className="text-2xl font-bold text-blue-600 tracking-tight">
+            GetWork
+          </h1>
+        </div>
       </Link>
 
       <div className="flex items-center gap-4">
