@@ -15,7 +15,17 @@ export default function InstallPrompt({ children }: { children: React.ReactNode 
             /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
         );
 
-        setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+        const checkStandalone = () => {
+            const isStandaloneMode =
+                window.matchMedia("(display-mode: standalone)").matches ||
+                window.matchMedia("(display-mode: fullscreen)").matches ||
+                window.matchMedia("(display-mode: minimal-ui)").matches ||
+                (window.navigator as any).standalone === true;
+
+            setIsStandalone(isStandaloneMode);
+        };
+
+        checkStandalone();
 
         const handleBeforeInstallPrompt = (e: any) => {
             e.preventDefault();
@@ -23,9 +33,11 @@ export default function InstallPrompt({ children }: { children: React.ReactNode 
         };
 
         window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        window.matchMedia("(display-mode: standalone)").addEventListener("change", checkStandalone);
 
         return () => {
             window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+            window.matchMedia("(display-mode: standalone)").removeEventListener("change", checkStandalone);
         };
     }, []);
 
