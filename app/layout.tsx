@@ -68,11 +68,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <Navbar />
-          {children}
-          <div className="h-24 md:hidden" />
-          <BottomNav />
-          <InstallPrompt />
+          <InstallPrompt>
+            <Navbar />
+            {children}
+            <div className="h-24 md:hidden" />
+            <BottomNav />
+          </InstallPrompt>
         </AuthProvider>
       </body>
     </html>
