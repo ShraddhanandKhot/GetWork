@@ -45,11 +45,7 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="flex justify-center mb-6">
-        <div className="p-3 bg-blue-100 rounded-full text-blue-600">
-          <Briefcase size={40} />
-        </div>
-      </div>
+
 
       {/* Search Bar */}
       <div className="mb-6 relative max-w-md mx-auto">
