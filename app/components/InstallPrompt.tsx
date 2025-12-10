@@ -49,7 +49,7 @@ export default function InstallPrompt({ children }: { children: React.ReactNode 
 
     const handleInstallClick = async () => {
         if (!deferredPrompt) {
-            alert("Please check your browser menu to install the app.");
+            alert("Go to browser menu and click on Add to Home Screen to install the app.");
             return;
         }
         deferredPrompt.prompt();
