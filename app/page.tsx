@@ -12,9 +12,9 @@ const Home = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="text-4xl font-bold text-gray-800 leading-tight">
+          <h3 className="text-4xl font-bold text-gray-800 leading-tight">
             Your Bridge to <span className="text-blue-600">Local Work</span>
-          </h2>
+          </h3>
 
           <p className="text-gray-600 max-w-xl mx-auto mt-4">
             Connecting local workers with nearby businesses quickly, easily and transparently.
