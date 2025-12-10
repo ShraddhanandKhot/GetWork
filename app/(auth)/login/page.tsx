@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [role, setRole] = useState("worker");
@@ -105,9 +106,11 @@ export default function LoginPage() {
             Register
           </a>
         </p>
-        <a href="/forgot-password" className="text-blue-600 text-sm">
-          Forgot Password?
-        </a>
+        <div className="text-center mt-2">
+          <Link href="/forgot-password" className="text-blue-600 text-sm">
+            Forgot Password?
+          </Link>
+        </div>
 
       </div>
     </div>
