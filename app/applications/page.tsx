@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Check, X, Bell, User, Briefcase, Calendar } from "lucide-react";
+import { Check, X, Bell, User, Briefcase, Calendar, Trash2 } from "lucide-react";
 
 interface Notification {
     _id: string;
@@ -8,6 +8,7 @@ interface Notification {
     read: boolean;
     createdAt: string;
     type: string;
+    actionStatus?: "accepted" | "rejected" | "pending"; // Added Action Status
     relatedUser?: {
         _id: string;
         name: string;
@@ -73,11 +74,30 @@ export default function ApplicationsPage() {
         }
     };
 
+    const deleteNotification = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this notification?")) return;
+        try {
+            const res = await fetch(`https://getwork-backend.onrender.com/api/notifications/${id}`, {
+                method: "DELETE",
+            });
+            const data = await res.json();
+            if (data.success) {
+                setNotifications(prev => prev.filter(n => n._id !== id));
+            } else {
+                alert("Failed to delete");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const handleAction = async (notif: Notification, status: "accepted" | "rejected") => {
         if (!notif.relatedId || !notif.relatedUser?._id) return;
 
         try {
             const token = localStorage.getItem("token");
+
+            // 1. Update Job Application Status
             const res = await fetch(
                 `https://getwork-backend.onrender.com/api/jobs/${notif.relatedId}/application/${notif.relatedUser._id}`,
                 {
@@ -90,11 +110,23 @@ export default function ApplicationsPage() {
                 }
             );
             const data = await res.json();
+
             if (data.success) {
                 alert(data.message);
-                markAsRead(notif._id);
-                // Optionally refresh notifications to reflect changes if needed
-                fetchNotifications();
+
+                // 2. Update Notification Status
+                await fetch(`https://getwork-backend.onrender.com/api/notifications/${notif._id}/status`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status })
+                });
+
+                // 3. Update Local State
+                setNotifications(prev => prev.map(n =>
+                    n._id === notif._id
+                        ? { ...n, read: true, actionStatus: status }
+                        : n
+                ));
             } else {
                 alert(data.message);
             }
@@ -105,7 +137,6 @@ export default function ApplicationsPage() {
     };
 
     const markAllRead = async () => {
-        // Optimistic update
         const unreadParams = notifications.filter(n => !n.read);
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
@@ -148,8 +179,17 @@ export default function ApplicationsPage() {
                                     }`}
                                 onClick={() => !notif.read && notif.type !== 'application' && markAsRead(notif._id)}
                             >
-                                <div className="p-6">
-                                    <div className="flex gap-4 items-start">
+                                <div className="p-6 relative">
+                                    {/* Delete Button */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); deleteNotification(notif._id); }}
+                                        className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
+                                        title="Delete Notification"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+
+                                    <div className="flex gap-4 items-start pr-8">
                                         <div className={`mt-1 p-2 rounded-full flex-shrink-0 ${notif.type === 'application' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
                                             }`}>
                                             {notif.type === 'application' ? <User size={24} /> : <Briefcase size={24} />}
@@ -186,22 +226,33 @@ export default function ApplicationsPage() {
                                                         </div>
                                                     </div>
 
-                                                    {!notif.read && (
-                                                        <div className="mt-6 flex gap-4 border-t pt-4 border-gray-200">
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleAction(notif, "accepted"); }}
-                                                                className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
-                                                            >
-                                                                <Check size={18} /> Accept Application
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleAction(notif, "rejected"); }}
-                                                                className="px-6 py-2 bg-white text-red-600 font-medium rounded-lg border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2"
-                                                            >
-                                                                <X size={18} /> Reject
-                                                            </button>
-                                                        </div>
-                                                    )}
+                                                    {/* Status / Actions */}
+                                                    <div className="mt-6 border-t pt-4 border-gray-200">
+                                                        {notif.actionStatus === 'accepted' ? (
+                                                            <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-bold">
+                                                                <Check size={18} /> Application Accepted
+                                                            </span>
+                                                        ) : notif.actionStatus === 'rejected' ? (
+                                                            <span className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg font-bold">
+                                                                <X size={18} /> Application Rejected
+                                                            </span>
+                                                        ) : (
+                                                            <div className="flex gap-4">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleAction(notif, "accepted"); }}
+                                                                    className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
+                                                                >
+                                                                    <Check size={18} /> Accept Application
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleAction(notif, "rejected"); }}
+                                                                    className="px-6 py-2 bg-white text-red-600 font-medium rounded-lg border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2"
+                                                                >
+                                                                    <X size={18} /> Reject
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
