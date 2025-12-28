@@ -133,12 +133,17 @@ export default function OrganizationDashboard() {
     });
   };
 
+  const handleFailsafeLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   if (!org) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
         <p className="text-gray-600 mb-4">Loading Organization Profile...</p>
         <button
-          onClick={logout}
+          onClick={handleFailsafeLogout}
           className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
         >
           <LogOut size={18} />
