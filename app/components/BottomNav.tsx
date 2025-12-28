@@ -31,14 +31,11 @@ export default function BottomNav() {
             </Link>
 
             {/* Dashboard (Conditional) */}
-            {isLoggedIn && role === 'worker' && (
-                <Link href="/worker" className={`flex flex-col items-center gap-1 ${isActive('/worker') ? 'text-blue-600' : 'text-gray-500'}`}>
-                    <User size={24} />
-                    <span className="text-[10px] font-medium">You</span>
-                </Link>
-            )}
-            {isLoggedIn && role === 'organization' && (
-                <Link href="/organization" className={`flex flex-col items-center gap-1 ${isActive('/organization') ? 'text-blue-600' : 'text-gray-500'}`}>
+            {isLoggedIn && (
+                <Link
+                    href={role === 'organization' ? '/organization' : role === 'referral_partner' ? '/referral' : '/worker'}
+                    className={`flex flex-col items-center gap-1 ${isActive('/worker') || isActive('/organization') || (isActive('/referral') && role === 'referral_partner') ? 'text-blue-600' : 'text-gray-500'}`}
+                >
                     <User size={24} />
                     <span className="text-[10px] font-medium">You</span>
                 </Link>

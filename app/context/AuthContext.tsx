@@ -41,7 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         checkUser();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                router.push("/update-password");
+            }
+
             if (session?.user) {
                 setUser(session.user);
                 // Only fetch role if we don't have it or if user changed
