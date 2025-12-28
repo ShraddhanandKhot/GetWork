@@ -98,14 +98,15 @@ export default function LoginPage() {
       }
 
       // Redirect based on role
+      // using window.location.href ensures a hard refresh, preventing "AuthContext" blocking or stale state issues
       if (role === 'worker') {
-        router.push("/worker");
+        window.location.href = "/worker";
       } else if (role === 'organization') {
-        router.push("/organization");
+        window.location.href = "/organization";
       } else if (role === 'referral') {
-        router.push("/referral");
+        window.location.href = "/referral";
       } else {
-        router.push("/");
+        window.location.href = "/";
       }
 
     } catch (err) {
