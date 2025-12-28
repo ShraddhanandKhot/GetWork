@@ -21,47 +21,96 @@ export default function LoginPage() {
 
       if (error) {
         alert(error.message);
+        setLoading(false);
         return;
       }
 
-      // Check role and redirect
-      // Note: The AuthContext listener will also trigger, but we can fast-track redirect here
-      if (data.user) {
-        // Fetch role to know where to redirect
-        // Try Worker
-        const { data: worker } = await supabase.from('workers').select('id').eq('id', data.user.id).single();
-        if (worker) {
-          window.location.href = "/worker";
-          return;
+      const user = data.user;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Check user metadata for role
+      const metadata = user.user_metadata || {};
+      const role = metadata.role || 'worker'; // Default to worker if unknown
+
+      // Attempt to find existing profile
+      let profileExists = false;
+
+      if (role === 'worker') {
+        const { data: worker } = await supabase.from('workers').select('id').eq('id', user.id).single();
+        if (worker) profileExists = true;
+      } else if (role === 'organization') {
+        const { data: org } = await supabase.from('organizations').select('id').eq('id', user.id).single();
+        if (org) profileExists = true;
+      } else if (role === 'referral') {
+        const { data: partner } = await supabase.from('referral_partners').select('id').eq('id', user.id).single();
+        if (partner) profileExists = true;
+      }
+
+      // If profile does NOT exist, create it now (Lazy Creation)
+      if (!profileExists) {
+        console.log("Profile missing, creating now from metadata...");
+
+        let createError = null;
+
+        if (role === 'worker') {
+          const { error: err } = await supabase.from("workers").insert({
+            id: user.id,
+            name: metadata.full_name || "",
+            email: user.email,
+            phone: (metadata.phone || "").replace(/^0+/, ""),
+            age: metadata.age ? Number(metadata.age) : null,
+            skills: metadata.skills ? metadata.skills.split(",").map((s: string) => s.trim()) : [],
+            location: metadata.location || "",
+            created_at: new Date().toISOString(),
+            verified: false
+          });
+          createError = err;
+        } else if (role === 'organization') {
+          const { error: err } = await supabase.from("organizations").insert({
+            id: user.id,
+            name: metadata.full_name || "", // Register page uses 'name' which maps to full_name in metadata logic I just wrote
+            email: user.email,
+            phone: (metadata.phone || "").replace(/^0+/, ""),
+            location: metadata.location || "",
+            created_at: new Date().toISOString(),
+            verified: false
+          });
+          createError = err;
+        } else if (role === 'referral') {
+          const { error: err } = await supabase.from("referral_partners").insert({
+            id: user.id,
+            name: metadata.full_name || "",
+            email: user.email,
+            phone: (metadata.phone || "").replace(/^0+/, "")
+          });
+          createError = err;
         }
 
-        // Try Org
-        const { data: org } = await supabase.from('organizations').select('id').eq('id', data.user.id).single();
-        if (org) {
-          window.location.href = "/organization";
+        if (createError) {
+          console.error("Failed to create missing profile:", createError);
+          alert("Login successful, but failed to initialize profile: " + createError.message);
+          setLoading(false);
           return;
         }
+      }
 
-        // Try Referral Partner
-        const { data: partner } = await supabase.from('referral_partners').select('id').eq('id', data.user.id).single();
-        if (partner) {
-          // Assuming referral dashboard exists or will exist. 
-          // For now maybe redirect to home or a generic dashboard? 
-          // Based on conversation history, maybe it's just /referral?
-          // I'll default to home if unsure, or /referral.
-          // Checking user request: "referral_partners" table exists.
-          window.location.href = "/referral";
-          return;
-        }
-
-        // If no profile found (maybe new user or error?)
-        alert("Login successful but no profile found. Please contact support.");
+      // Redirect based on role
+      if (role === 'worker') {
+        router.push("/worker");
+      } else if (role === 'organization') {
+        router.push("/organization");
+      } else if (role === 'referral') {
+        router.push("/referral");
+      } else {
+        router.push("/");
       }
 
     } catch (err) {
       alert("Something went wrong");
       console.error(err);
-    } finally {
       setLoading(false);
     }
   };

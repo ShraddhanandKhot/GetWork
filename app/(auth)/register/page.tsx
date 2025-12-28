@@ -25,7 +25,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Sign Up
+      // 1. Sign Up - Store all profile data in metadata so we can create profile AFTER login
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -33,6 +33,10 @@ export default function RegisterPage() {
           data: {
             role: role,
             full_name: name,
+            phone: phone,
+            age: age,
+            skills: skills,
+            location: location
           },
         },
       });
@@ -44,43 +48,12 @@ export default function RegisterPage() {
       }
 
       if (authData.user) {
-        // 2. Insert into Public Table
-        let error = null;
-
-        if (role === "worker") {
-          const { error: workerError } = await supabase.from("workers").insert({
-            id: authData.user.id,
-            name,
-            age: age ? Number(age) : null,
-            skills: skills.split(",").map((s) => s.trim()),
-            location,
-            phone: phone.replace(/^0+/, ""),
-            email,
-            created_at: new Date().toISOString(),
-            verified: false
-          });
-          error = workerError;
-        } else {
-          const { error: orgError } = await supabase.from("organizations").insert({
-            id: authData.user.id,
-            name,
-            location,
-            phone: phone.replace(/^0+/, ""),
-            email,
-            created_at: new Date().toISOString(),
-            verified: false
-          });
-          error = orgError;
-        }
-
-        if (error) {
-          console.error("Profile creation failed:", error);
-          alert("Account created but profile setup failed: " + error.message);
-          // Optional: delete the user if profile creation fails? or let them try again?
-        } else {
-          alert("Registration Successful!");
-          router.push("/login");
-        }
+        // 2. Success - Redirect to Login
+        // We do NOT insert into the database here. 
+        // We wait for the user to Login first (establishing a session), 
+        // and then the Login page will handle creating the profile if it doesn't exist.
+        alert("Registration Successful! Please Login to complete setup.");
+        router.push("/login");
       }
 
     } catch (err) {

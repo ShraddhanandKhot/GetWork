@@ -101,10 +101,38 @@ export default function ReferralPage() {
         return;
       }
 
-      // Check role to ensure they are logging in on correct tab? 
-      // AuthContext handles role determination. 
-      // Just refresh/redirect handled by AuthContext listener roughly, but let's force check
+      // Lazy Profile Creation
+      if (data.user) {
+        const user = data.user;
+        // Check if profile exists
+        const { data: partner } = await supabase.from('referral_partners').select('id').eq('id', user.id).single();
+
+        if (!partner) {
+          console.log("Referral Profile missing, creating now...");
+          const metadata = user.user_metadata || {};
+
+          const { error: createError } = await supabase.from('referral_partners').insert({
+            id: user.id,
+            name: metadata.full_name || "",
+            email: user.email,
+            phone: (metadata.phone || "").replace(/^0+/, "")
+          });
+
+          if (createError) {
+            console.error("Failed to create referral profile:", createError);
+            alert("Login successful but profile setup failed: " + createError.message);
+            return;
+          }
+
+          // Force reload to update AuthContext with new role
+          window.location.reload();
+          return;
+        }
+      }
+
       alert("Login Successful!");
+      // If profile existed, context might naturally update or we might need reload if role was null
+      // But typically if they logged in before, they have role.
 
     } catch (err) {
       console.error(err);
@@ -114,6 +142,7 @@ export default function ReferralPage() {
 
   const handleRegister = async () => {
     try {
+      // 1. Sign Up - Store metadata for lazy profile creation
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: regEmail,
         password: regPassword,
@@ -121,7 +150,7 @@ export default function ReferralPage() {
           data: {
             full_name: regName,
             phone: regPhone,
-            role: 'referral' // Meta data
+            role: 'referral'
           }
         }
       });
@@ -132,21 +161,9 @@ export default function ReferralPage() {
       }
 
       if (authData.user) {
-        // Create Profile
-        const { error: profileError } = await supabase.from('referral_partners').insert({
-          id: authData.user.id,
-          name: regName,
-          email: regEmail,
-          phone: regPhone,
-        });
-
-        if (profileError) {
-          console.error("Profile creation failed", profileError);
-          alert("Account created but profile failed. Please contact support.");
-        } else {
-          alert("Registration Successful!");
-          setActiveTab("login");
-        }
+        // 2. Success - Switch to Login
+        alert("Registration Successful! Please Login to complete setup.");
+        setActiveTab("login");
       }
     } catch (err) {
       console.error(err);
