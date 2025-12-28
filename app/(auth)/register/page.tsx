@@ -1,8 +1,13 @@
 "use client";
 import { useState } from "react";
+import { createClient } from "@/utils/supabase/client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
   const [role, setRole] = useState("worker");
+  const router = useRouter();
+  const supabase = createClient();
 
   // Worker fields
   const [name, setName] = useState("");
@@ -10,51 +15,79 @@ export default function RegisterPage() {
   const [skills, setSkills] = useState("");
   const [location, setLocation] = useState("");
 
-  // Common fields
+  // Common fields (Phone is just a field now, Email is Auth)
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    const endpoint =
-      role === "worker"
-        ? "https://getwork-backend.onrender.com/api/worker/register"
-        : "https://getwork-backend.onrender.com/api/org/register";
-
-    const body =
-      role === "worker"
-        ? {
-          name,
-          age: Number(age),
-          skills: skills.split(",").map((s) => s.trim()),
-          location,
-          phone: phone.replace(/^0+/, ""),
-          email,
-          password,
-        }
-        : {
-          name,
-          location,
-          phone: phone.replace(/^0+/, ""),
-          email,
-          password,
-        };
+    setLoading(true);
 
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      // 1. Sign Up
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: role,
+            full_name: name,
+          },
+        },
       });
 
-      const data = await res.json();
-      alert(data.message);
-
-      if (data.success) {
-        window.location.href = "/login";
+      if (authError) {
+        alert(authError.message);
+        setLoading(false);
+        return;
       }
+
+      if (authData.user) {
+        // 2. Insert into Public Table
+        let error = null;
+
+        if (role === "worker") {
+          const { error: workerError } = await supabase.from("workers").insert({
+            id: authData.user.id,
+            name,
+            age: age ? Number(age) : null,
+            skills: skills.split(",").map((s) => s.trim()),
+            location,
+            phone: phone.replace(/^0+/, ""),
+            email,
+            created_at: new Date().toISOString(),
+            verified: false
+          });
+          error = workerError;
+        } else {
+          const { error: orgError } = await supabase.from("organizations").insert({
+            id: authData.user.id,
+            name,
+            location,
+            phone: phone.replace(/^0+/, ""),
+            email,
+            created_at: new Date().toISOString(),
+            verified: false
+          });
+          error = orgError;
+        }
+
+        if (error) {
+          console.error("Profile creation failed:", error);
+          alert("Account created but profile setup failed: " + error.message);
+          // Optional: delete the user if profile creation fails? or let them try again?
+        } else {
+          alert("Registration Successful!");
+          router.push("/login");
+        }
+      }
+
     } catch (err) {
-      alert("Server not reachable");
+      alert("Something went wrong");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -167,17 +200,18 @@ export default function RegisterPage() {
         />
 
         <button
-          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-green-700"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
           onClick={handleRegister}
+          disabled={loading}
         >
-          Register
+          {loading ? "Creating Account..." : "Register"}
         </button>
 
         <p className="text-center mt-4 text-black">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 font-semibold">
+          <Link href="/login" className="text-blue-600 font-semibold">
             Login
-          </a>
+          </Link>
         </p>
       </div>
     </div>

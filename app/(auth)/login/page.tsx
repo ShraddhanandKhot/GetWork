@@ -1,50 +1,68 @@
 "use client";
 import { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const [role, setRole] = useState("worker");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
   const handleLogin = async () => {
-    const endpoint =
-      role === "worker"
-        ? "https://getwork-backend.onrender.com/api/worker/login"
-        : "https://getwork-backend.onrender.com/api/org/login";
-
+    setLoading(true);
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone.replace(/^0+/, ""), password }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await res.json();
-
-      if (!data.success) {
-        alert(data.message);
+      if (error) {
+        alert(error.message);
         return;
       }
 
-      // Save token to localStorage
-      localStorage.setItem("name", role === "worker" ? data.user.name : data.org.name);
-      login(data.token, role);
+      // Check role and redirect
+      // Note: The AuthContext listener will also trigger, but we can fast-track redirect here
+      if (data.user) {
+        // Fetch role to know where to redirect
+        // Try Worker
+        const { data: worker } = await supabase.from('workers').select('id').eq('id', data.user.id).single();
+        if (worker) {
+          window.location.href = "/worker";
+          return;
+        }
 
-      alert("Login Successful!");
+        // Try Org
+        const { data: org } = await supabase.from('organizations').select('id').eq('id', data.user.id).single();
+        if (org) {
+          window.location.href = "/organization";
+          return;
+        }
 
-      // Redirect based on role
-      if (role === "worker") {
-        window.location.href = "/worker";
-      } else {
-        window.location.href = "/organization";
+        // Try Referral Partner
+        const { data: partner } = await supabase.from('referral_partners').select('id').eq('id', data.user.id).single();
+        if (partner) {
+          // Assuming referral dashboard exists or will exist. 
+          // For now maybe redirect to home or a generic dashboard? 
+          // Based on conversation history, maybe it's just /referral?
+          // I'll default to home if unsure, or /referral.
+          // Checking user request: "referral_partners" table exists.
+          window.location.href = "/referral";
+          return;
+        }
+
+        // If no profile found (maybe new user or error?)
+        alert("Login successful but no profile found. Please contact support.");
       }
 
     } catch (err) {
-      alert("Server not reachable");
-      console.log(err);
+      alert("Something went wrong");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,34 +73,18 @@ export default function LoginPage() {
           Login to GetWork
         </h2>
 
-        <div className="flex gap-3 mb-6">
-          <button
-            className={`flex-1 py-2 rounded-lg ${role === "worker"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-            onClick={() => setRole("worker")}
-          >
-            Worker
-          </button>
-
-          <button
-            className={`flex-1 py-2 rounded-lg ${role === "organization"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700"
-              }`}
-            onClick={() => setRole("organization")}
-          >
-            Organization
-          </button>
+        <div className="mb-4">
+          <p className="text-gray-500 text-sm text-center mb-4">
+            Sign in with your email and password
+          </p>
         </div>
 
         <input
-          type="text"
-          placeholder="Phone Number"
+          type="email"
+          placeholder="Email Address"
           className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
@@ -94,17 +96,18 @@ export default function LoginPage() {
         />
 
         <button
-          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           onClick={handleLogin}
+          disabled={loading}
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
 
         <p className="text-center mt-4 text-black">
           Don’t have an account?{" "}
-          <a href="/register" className="text-blue-600 font-semibold">
+          <Link href="/register" className="text-blue-600 font-semibold">
             Register
-          </a>
+          </Link>
         </p>
         <div className="text-center mt-2">
           <Link href="/forgot-password" className="text-blue-600 text-sm">

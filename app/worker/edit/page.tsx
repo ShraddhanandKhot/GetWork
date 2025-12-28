@@ -1,8 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function EditWorker() {
   const [profile, setProfile] = useState(null);
+  const router = useRouter();
+  const supabase = createClient();
   const [form, setForm] = useState({
     name: "",
     age: "",
@@ -12,50 +16,54 @@ export default function EditWorker() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
     async function loadProfile() {
-      const res = await fetch("https://getwork-backend.onrender.com/api/worker/profile", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-      if (data.success) {
-        setProfile(data.worker);
+      const { data, error } = await supabase
+        .from('workers')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (data) {
+        setProfile(data as any);
         setForm({
-          name: data.worker.name,
-          age: data.worker.age,
-          skills: data.worker.skills.join(", "),
-          location: data.worker.location,
-          email: data.worker.email || "",
+          name: data.name || "",
+          age: data.age || "",
+          skills: data.skills ? data.skills.join(", ") : "",
+          location: data.location || "",
+          email: data.email || user.email || "",
         });
       }
     }
 
     loadProfile();
-  }, []);
+  }, [supabase, router]);
 
   const handleUpdate = async () => {
-    const token = localStorage.getItem("token");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    const res = await fetch("https://getwork-backend.onrender.com/api/worker/update", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        ...form,
-        skills: form.skills.split(",").map(s => s.trim())
-      }),
-    });
+    const { error } = await supabase
+      .from('workers')
+      .update({
+        name: form.name,
+        age: form.age, // Ensure DB expects string or convert to number
+        skills: form.skills.split(",").map(s => s.trim()),
+        location: form.location,
+        email: form.email
+      })
+      .eq('id', user.id);
 
-    const data = await res.json();
-
-    alert(data.message);
-
-    if (data.success) {
-      window.location.href = "/worker";
+    if (error) {
+      alert("Failed to update: " + error.message);
+    } else {
+      alert("Profile Updated Successfully");
+      router.push("/worker");
     }
   };
 

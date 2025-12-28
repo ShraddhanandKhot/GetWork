@@ -2,51 +2,64 @@
 
 import { useEffect, useState } from "react";
 import { Building2, MapPin, Search, Wallet, Briefcase } from "lucide-react";
+import { createClient } from "../../utils/supabase/client";
+import Link from "next/link";
 
 interface Job {
-  _id: string;
+  id: string;
   title: string;
-  orgId: {
+  org_id: {
     name: string;
   };
   location: string;
-  salaryRange: string;
+  salary_range: string;
   category: string;
-  createdAt?: string;
+  created_at: string;
 }
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const supabase = createClient();
 
   useEffect(() => {
     async function loadJobs() {
-      const res = await fetch("https://getwork-backend.onrender.com/api/jobs");
-      const data = await res.json();
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          id,
+          title,
+          location,
+          salary_range,
+          category,
+          created_at,
+          org_id (
+            name
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-      if (data.success) {
-        // Sort by latest posted first
-        const sortedJobs = data.jobs.sort((a: Job, b: Job) => {
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
-          return dateB - dateA;
-        });
-        setJobs(sortedJobs);
+      if (error) {
+        console.error("Error fetching jobs:", error);
+      } else if (data) {
+        // Supabase returns org_id as an array or object depending on relationship.
+        // Assuming Many-to-One, it returns a single object if configured correctly,
+        // but Typescript might need assertion or handling.
+        // The query `org_id (name)` usually returns { org_id: { name: '...' } }
+        setJobs(data as unknown as Job[]);
       }
     }
 
     loadJobs();
-  }, []);
+  }, [supabase]);
 
   const filteredJobs = jobs.filter((job) =>
-    job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.title.toLowerCase().includes(searchTerm.toLowerCase())
+    (job.location || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (job.title || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-
-
       {/* Search Bar */}
       <div className="mb-6 relative max-w-md mx-auto">
         <input
@@ -64,14 +77,14 @@ export default function JobsPage() {
       ) : (
         filteredJobs.map((job) => (
           <div
-            key={job._id}
+            key={job.id}
             className="mb-6 bg-white shadow-md rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow"
           >
             {/* Header Section */}
             <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex justify-between items-start gap-4">
               <h2 className="text-2xl font-bold text-blue-900">{job.title}</h2>
               <span className="text-lg font-semibold text-blue-800 whitespace-nowrap mt-1">
-                ₹{job.salaryRange}
+                ₹{job.salary_range}
               </span>
             </div>
 
@@ -80,7 +93,7 @@ export default function JobsPage() {
               <div className="mb-6 space-y-3">
                 <p className="text-gray-900 font-medium flex items-center gap-2">
                   <Building2 size={20} className="text-blue-600" />
-                  <span>{job.orgId.name}</span>
+                  <span>{job.org_id?.name || "Unknown Company"}</span>
                 </p>
                 <p className="text-gray-700 flex items-center gap-2">
                   <MapPin size={20} className="text-gray-500" />
@@ -89,7 +102,7 @@ export default function JobsPage() {
                 <div className="flex items-center gap-2">
                   <Wallet size={20} className="text-green-600" />
                   <span className="bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm inline-block">
-                    ₹{job.salaryRange}
+                    ₹{job.salary_range}
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 bg-gray-50 px-2 py-1 rounded inline-block ml-8">
@@ -97,16 +110,16 @@ export default function JobsPage() {
                 </p>
               </div>
 
-              <a
-                href={`/jobs/${job._id}`}
+              <Link
+                href={`/jobs/${job.id}`}
                 className="block w-full text-center py-3 bg-white border border-blue-200 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
               >
                 View Details
-              </a>
+              </Link>
 
-              {job.createdAt && (
+              {job.created_at && (
                 <p className="text-xs text-center text-gray-400 mt-3">
-                  Posted on {new Date(job.createdAt).toLocaleDateString()}
+                  Posted on {new Date(job.created_at).toLocaleDateString()}
                 </p>
               )}
             </div>

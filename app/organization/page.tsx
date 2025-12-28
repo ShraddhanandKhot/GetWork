@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 interface Organization {
+  id: string;
   name: string;
   location: string;
   phone: string;
@@ -11,142 +13,127 @@ interface Organization {
 }
 
 interface Job {
-  _id: string;
+  id: string;
   title: string;
   location: string;
-  salaryRange: string;
-}
-
-type JobType = {
-  _id: string;
-  title: string;
-  location?: string;
-  salaryRange?: string;
+  salary_range: string;
   description?: string;
   category?: string;
-};
-
+}
 
 export default function OrganizationDashboard() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
-
-
+  const supabase = createClient();
 
   const [form, setForm] = useState({
     title: "",
     description: "",
-    salaryRange: "",
+    salary_range: "",
     location: "",
     category: "",
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+    async function fetchData() {
+      if (!user) return;
 
-    if (!token || role !== "organization") {
-      window.location.href = "/login";
-      return;
+      // 1. Fetch Org Profile
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (orgData) setOrg(orgData as Organization);
+
+      // 2. Fetch Jobs
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('org_id', user.id); // Assuming RLS allows this, or purely by ID match
+
+      if (jobsData) setJobs(jobsData as unknown as Job[]);
     }
 
-    async function fetchOrg() {
-      const res = await fetch(
-        "https://getwork-backend.onrender.com/api/org/profile",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      if (data.success) setOrg(data.org);
-    }
-
-    async function fetchJobs() {
-      const res = await fetch(
-        "https://getwork-backend.onrender.com/api/jobs/my-jobs",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      if (data.success) setJobs(data.jobs);
-    }
-
-    fetchOrg();
-    fetchJobs();
-  }, []);
+    fetchData();
+  }, [user, supabase]);
 
   const postJob = async () => {
-    const token = localStorage.getItem("token");
+    if (!user || !org) return;
 
-    const url = editingJobId
-      ? `https://getwork-backend.onrender.com/api/jobs/${editingJobId}`
-      : `https://getwork-backend.onrender.com/api/jobs/create-job`;
+    const payload = {
+      title: form.title,
+      description: form.description,
+      salary_range: form.salary_range,
+      location: form.location,
+      category: form.category,
+      org_id: user.id
+    };
 
-    const method = editingJobId ? "PUT" : "POST";
+    let error;
 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(form),
-    });
+    if (editingJobId) {
+      // Update
+      const { error: updateError } = await supabase
+        .from('jobs')
+        .update(payload)
+        .eq('id', editingJobId);
+      error = updateError;
+    } else {
+      // Create
+      const { error: insertError } = await supabase
+        .from('jobs')
+        .insert(payload);
+      error = insertError;
+    }
 
-    const data = await res.json();
-    alert(data.message);
-
-    if (data.success) {
+    if (error) {
+      alert("Failed to save job: " + error.message);
+    } else {
+      alert(editingJobId ? "Job updated!" : "Job posted!");
       setShowPostForm(false);
       setEditingJobId(null);
+      setForm({ title: "", description: "", salary_range: "", location: "", category: "" });
 
-      // refresh job list
-      const jobsRes = await fetch(
-        `https://getwork-backend.onrender.com/api/jobs/my-jobs`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const jobsData = await jobsRes.json();
-      setJobs(jobsData.jobs);
+      // Refresh Jobs
+      const { data: jobsData } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('org_id', user.id);
+      if (jobsData) setJobs(jobsData as unknown as Job[]);
     }
   };
 
   const deleteJob = async (id: string) => {
-    const token = localStorage.getItem("token");
-
     if (!confirm("Are you sure you want to delete this job?")) return;
 
-    const res = await fetch(
-      `https://getwork-backend.onrender.com/api/jobs/${id}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const { error } = await supabase.from('jobs').delete().eq('id', id);
 
-    const data = await res.json();
-    alert(data.message);
-
-    if (data.success) {
-      setJobs(jobs.filter((job) => job._id !== id));
+    if (error) {
+      alert("Failed to delete: " + error.message);
+    } else {
+      alert("Job deleted");
+      setJobs(jobs.filter((job) => job.id !== id));
     }
   };
 
-  const startEdit = (job: JobType) => {
+  const startEdit = (job: Job) => {
     setShowPostForm(true);
-    setEditingJobId(job._id);
+    setEditingJobId(job.id);
     setForm({
       title: job.title,
       description: job.description || "",
-      salaryRange: job.salaryRange || "",
-      location: job.location || "",
+      salary_range: job.salary_range || "",
+      location: job.location,
       category: job.category || "",
     });
-
   };
 
-
-  if (!org) return <p className="p-6">Loading...</p>;
+  if (!org) return <p className="p-6">Loading Organization Profile...</p>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -163,7 +150,6 @@ export default function OrganizationDashboard() {
           <span className="font-medium">Logout</span>
         </button>
       </div>
-
 
       {/* ORG DETAILS */}
       <div className="bg-white p-6 rounded-xl shadow mb-6">
@@ -183,7 +169,11 @@ export default function OrganizationDashboard() {
           <h2 className="text-xl font-semibold text-black">Your Posted Jobs</h2>
 
           <button
-            onClick={() => setShowPostForm(true)}
+            onClick={() => {
+              setForm({ title: "", description: "", salary_range: "", location: "", category: "" });
+              setEditingJobId(null);
+              setShowPostForm(true);
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg"
           >
             + Post New Job
@@ -194,10 +184,10 @@ export default function OrganizationDashboard() {
           <p className="text-gray-600">No jobs posted yet.</p>
         ) : (
           jobs.map((job) => (
-            <div key={job._id} className="p-3 border rounded-lg mb-3">
+            <div key={job.id} className="p-3 border rounded-lg mb-3">
               <h3 className="font-bold text-gray-600">{job.title}</h3>
               <p className="text-sm text-gray-600">{job.location}</p>
-              <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block text-sm">{job.salaryRange}</p>
+              <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block text-sm">{job.salary_range}</p>
 
               <div className="flex gap-3 mt-3">
                 <button
@@ -208,7 +198,7 @@ export default function OrganizationDashboard() {
                 </button>
 
                 <button
-                  onClick={() => deleteJob(job._id)}
+                  onClick={() => deleteJob(job.id)}
                   className="px-3 py-1 bg-red-600 text-white rounded"
                 >
                   Delete
@@ -219,13 +209,11 @@ export default function OrganizationDashboard() {
         )}
       </div>
 
-
-
       {/* JOB POST FORM */}
       {showPostForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-gray-400">Post New Job</h2>
+          <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4 text-gray-400">{editingJobId ? "Edit Job" : "Post New Job"}</h2>
 
             <input
               className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
@@ -253,12 +241,12 @@ export default function OrganizationDashboard() {
             />
 
             <input
-              type="number"
+              type="text"
               className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
-              placeholder="Salary (Amount)"
-              value={form.salaryRange}
+              placeholder="Salary (e.g. 5000-10000)"
+              value={form.salary_range}
               onChange={(e) =>
-                setForm({ ...form, salaryRange: e.target.value })
+                setForm({ ...form, salary_range: e.target.value })
               }
             />
 
@@ -283,7 +271,7 @@ export default function OrganizationDashboard() {
               onClick={postJob}
               className="w-full py-3 bg-blue-600 text-white rounded-lg mb-2"
             >
-              Post Job
+              {editingJobId ? "Update Job" : "Post Job"}
             </button>
 
             <button

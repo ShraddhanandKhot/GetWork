@@ -2,13 +2,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 export default function ReferralPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [loginRole, setLoginRole] = useState<"referral" | "worker">("referral");
 
   // Login State
-  const [loginPhone, setLoginPhone] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
   // Register State
@@ -17,127 +18,14 @@ export default function ReferralPage() {
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
-  const { login, isLoggedIn, role, logout } = useAuth();
+  const { isLoggedIn, role, logout } = useAuth();
   const router = useRouter();
   const [userName, setUserName] = useState("");
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      const storedName = localStorage.getItem("name");
-      if (storedName) {
-        setUserName(storedName);
-      }
-    }
-  }, [isLoggedIn]);
-
-  const handleLogin = async () => {
-    const endpoint =
-      loginRole === "worker"
-        ? "https://getwork-backend.onrender.com/api/worker/login"
-        : "https://getwork-backend.onrender.com/api/referral/login";
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: loginPhone.replace(/^0+/, ""), password: loginPassword }),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        alert(data.message || "Login failed");
-        return;
-      }
-
-      // Use the actual role so workers can see their dashboard
-      const sessionRole = loginRole;
-
-      // Save token and forced role
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", sessionRole);
-
-      // Save name if available
-      if (data.user?.name) localStorage.setItem("name", data.user.name);
-      if (data.referral?.name) localStorage.setItem("name", data.referral.name);
-
-      // Update context
-      login(data.token, sessionRole);
-
-      alert("Login Successful as Referral!");
-      router.refresh();
-
-    } catch (err) {
-      console.error(err);
-      alert("Server error during login");
-    }
-  };
-
-  const handleRegister = async () => {
-    try {
-      const res = await fetch("https://getwork-backend.onrender.com/api/referral/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: regName,
-          email: regEmail,
-          phone: regPhone.replace(/^0+/, ""),
-          password: regPassword,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        alert("Registration Successful! Please login.");
-        setActiveTab("login");
-      } else {
-        alert(data.message || "Registration failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Server error during registration");
-    }
-  };
+  const supabase = createClient();
 
   // Job State
   const [jobs, setJobs] = useState<any[]>([]);
   const [stats, setStats] = useState<{ total: number; points: number; pending: number; badges: string[] }>({ total: 0, points: 0, pending: 0, badges: [] });
-
-  const fetchStats = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("https://getwork-backend.onrender.com/api/referral/stats", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        // Calculate pending from referrals list if not provided directly
-        const pendingCount = data.referrals ? data.referrals.filter((r: any) => r.status === 'pending').length : 0;
-        setStats({
-          total: data.stats.total || 0,
-          points: data.stats.successful || 0,
-          pending: pendingCount,
-          badges: data.stats.badges || []
-        });
-      }
-    } catch (err) {
-      console.error("Failed to fetch stats", err);
-    }
-  };
-
-  useEffect(() => {
-    if (isLoggedIn && (role === "referral" || role === "worker")) {
-      fetch("https://getwork-backend.onrender.com/api/referral/jobs")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) setJobs(data.jobs);
-        })
-        .catch((err) => console.error(err));
-
-      fetchStats();
-    }
-  }, [isLoggedIn, role]);
 
   // Referral Modal State
   const [showModal, setShowModal] = useState(false);
@@ -145,12 +33,126 @@ export default function ReferralPage() {
   const [workerForm, setWorkerForm] = useState({
     name: "",
     phone: "",
-    password: "",
     age: "",
     skills: "",
     location: "",
     experience: "",
   });
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      // Fetch user name based on role
+      const fetchName = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          if (role === 'referral') {
+            const { data } = await supabase.from('referral_partners').select('name').eq('id', user.id).single();
+            if (data) setUserName(data.name);
+          } else {
+            const { data } = await supabase.from('workers').select('name').eq('id', user.id).single();
+            if (data) setUserName(data.name);
+          }
+        }
+      };
+      fetchName();
+
+      fetchJobs();
+      if (role === 'referral') fetchStats();
+    }
+  }, [isLoggedIn, role, supabase]);
+
+  const fetchJobs = async () => {
+    const { data, error } = await supabase.from('jobs').select('*');
+    if (data) setJobs(data);
+  };
+
+  const fetchStats = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: referrals } = await supabase
+      .from('referrals')
+      .select('status')
+      .eq('partner_id', user.id);
+
+    if (referrals) {
+      const total = referrals.length;
+      const successful = referrals.filter(r => r.status === 'hired' || r.status === 'accepted').length;
+      const pending = referrals.filter(r => r.status === 'pending').length;
+
+      // Calculate badges logic here or fetch from backend if complex
+      const badges = [];
+      if (successful >= 5) badges.push("Top Referrer");
+      if (total >= 10) badges.push("Active Scout");
+
+      setStats({ total, points: successful * 10, pending, badges }); // Assuming 10 points per hire
+    }
+  };
+
+  const handleLogin = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      // Check role to ensure they are logging in on correct tab? 
+      // AuthContext handles role determination. 
+      // Just refresh/redirect handled by AuthContext listener roughly, but let's force check
+      alert("Login Successful!");
+
+    } catch (err) {
+      console.error(err);
+      alert("Error during login");
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: regEmail,
+        password: regPassword,
+        options: {
+          data: {
+            full_name: regName,
+            phone: regPhone,
+            role: 'referral' // Meta data
+          }
+        }
+      });
+
+      if (authError) {
+        alert(authError.message);
+        return;
+      }
+
+      if (authData.user) {
+        // Create Profile
+        const { error: profileError } = await supabase.from('referral_partners').insert({
+          id: authData.user.id,
+          name: regName,
+          email: regEmail,
+          phone: regPhone,
+        });
+
+        if (profileError) {
+          console.error("Profile creation failed", profileError);
+          alert("Account created but profile failed. Please contact support.");
+        } else {
+          alert("Registration Successful!");
+          setActiveTab("login");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error during registration");
+    }
+  };
 
   const openReferralModal = (jobId: string) => {
     setSelectedJobId(jobId);
@@ -163,7 +165,6 @@ export default function ReferralPage() {
     setWorkerForm({
       name: "",
       phone: "",
-      password: "",
       age: "",
       skills: "",
       location: "",
@@ -176,39 +177,33 @@ export default function ReferralPage() {
     if (!selectedJobId) return;
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("https://getwork-backend.onrender.com/api/referral/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from('referrals').insert({
+        partner_id: user.id,
+        job_id: selectedJobId,
+        candidate_name: workerForm.name,
+        candidate_phone: workerForm.phone,
+        candidate_details: {
+          age: workerForm.age,
+          skills: workerForm.skills,
+          location: workerForm.location,
+          experience: workerForm.experience
         },
-        body: JSON.stringify({
-          jobId: selectedJobId,
-          workerName: workerForm.name,
-          workerPhone: workerForm.phone.replace(/^0+/, ""),
-          workerPassword: workerForm.password,
-          workerDetails: {
-            age: workerForm.age,
-            skills: workerForm.skills, // Backend handles string splitting if needed, or we can split here
-            location: workerForm.location,
-            experience: workerForm.experience,
-          },
-        }),
+        status: 'pending'
       });
 
-      const data = await res.json();
-
-      if (data.success) {
+      if (error) {
+        alert("Failed to submit: " + error.message);
+      } else {
         alert("Referral Submitted Successfully!");
         closeReferralModal();
         fetchStats();
-      } else {
-        alert(data.message || "Failed to submit referral");
       }
     } catch (err) {
       console.error(err);
-      alert("Server error during referral submission");
+      alert("Error during submission");
     }
   };
 
@@ -271,16 +266,16 @@ export default function ReferralPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {jobs.map((job) => (
-                <div key={job._id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between">
+                <div key={job.id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between">
                   <div>
                     <h4 className="text-xl font-bold text-blue-600 mb-2">{job.title}</h4>
                     <p className="text-gray-600 mb-2 font-medium">{job.location}</p>
-                    <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block mb-4">{job.salaryRange}</p>
+                    <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block mb-4">{job.salary_range}</p>
                     <p className="text-gray-500 text-sm mb-4 line-clamp-3">{job.description}</p>
                   </div>
                   <button
                     className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mt-auto"
-                    onClick={() => openReferralModal(job._id)}
+                    onClick={() => openReferralModal(job.id)}
                   >
                     Refer a Worker
                   </button>
@@ -323,17 +318,6 @@ export default function ReferralPage() {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                     value={workerForm.phone}
                     onChange={(e) => setWorkerForm({ ...workerForm, phone: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Set Password (for Worker)</label>
-                  <input
-                    type="password"
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                    value={workerForm.password}
-                    onChange={(e) => setWorkerForm({ ...workerForm, password: e.target.value })}
                   />
                 </div>
 
@@ -394,6 +378,11 @@ export default function ReferralPage() {
     );
   }
 
+  /* ... (keeping previous code for render) ... */
+  /* Wait, I cannot use comments to skip code in replace_file_content. I must provide the exact replacement for the chunk. */
+  /* Since the duplication is large, I will target the end of the file. */
+  /* Actually, I will just rewrite the `return` block and the end of the component to be clean. */
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
@@ -434,47 +423,17 @@ export default function ReferralPage() {
         {activeTab === "login" && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                I am a:
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="loginRole"
-                    value="referral"
-                    checked={loginRole === "referral"}
-                    onChange={() => setLoginRole("referral")}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  />
-                  <span className="ml-2 text-gray-700">Referral Partner</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="loginRole"
-                    value="worker"
-                    checked={loginRole === "worker"}
-                    onChange={() => setLoginRole("worker")}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  />
-                  <span className="ml-2 text-gray-700">Worker</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="login-phone" className="sr-only">
-                Phone Number
+              <label htmlFor="login-email" className="sr-only">
+                Email
               </label>
               <input
-                id="login-phone"
+                id="login-email"
                 type="text"
                 required
                 className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Phone Number"
-                value={loginPhone}
-                onChange={(e) => setLoginPhone(e.target.value)}
+                placeholder="Email Address"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
               />
             </div>
             <div>

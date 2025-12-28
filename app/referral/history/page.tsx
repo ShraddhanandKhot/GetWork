@@ -1,37 +1,44 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 export default function ReferralHistoryPage() {
     const [referrals, setReferrals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const supabase = createClient();
 
     useEffect(() => {
         const fetchHistory = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    router.push("/referral");
-                    return;
-                }
-
-                const res = await fetch("https://getwork-backend.onrender.com/api/referral/stats", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (data.success) {
-                    setReferrals(data.referrals || []);
-                }
-            } catch (err) {
-                console.error("Failed to fetch history", err);
-            } finally {
-                setLoading(false);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push("/referral");
+                return;
             }
+
+            // Fetch referrals with job details
+            const { data, error } = await supabase
+                .from('referrals')
+                .select(`
+                    *,
+                    job:jobs (
+                        title,
+                        org_id (
+                            name
+                        )
+                    )
+                `)
+                .eq('partner_id', user.id);
+
+            if (data) {
+                setReferrals(data);
+            }
+            setLoading(false);
         };
 
         fetchHistory();
-    }, [router]);
+    }, [router, supabase]);
 
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -66,12 +73,12 @@ export default function ReferralHistoryPage() {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {referrals.map((ref) => (
-                                    <tr key={ref._id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ref.workerName}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ref.jobId?.title || "Unknown Job"}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ref.jobId?.orgId?.name || "N/A"}</td>
+                                    <tr key={ref.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ref.candidate_name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ref.job?.title || "Unknown Job"}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ref.job?.org_id?.name || "N/A"}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(ref.createdAt).toLocaleDateString()}
+                                            {new Date(ref.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 

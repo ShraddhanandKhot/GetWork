@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 interface WorkerProfile {
+  id: string;
   name: string;
   age: number;
   skills: string[];
@@ -12,37 +14,29 @@ interface WorkerProfile {
 }
 
 export default function WorkerDashboard() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
-
     async function fetchProfile() {
-      try {
-        const res = await fetch("https://getwork-backend.onrender.com/api/worker/profile", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      if (!user) return;
 
-        const data = await res.json();
-        if (data.success) {
-          setProfile(data.worker);
-        }
-      } catch (err) {
-        console.log("Error fetching profile:", err);
+      const { data, error } = await supabase
+        .from('workers')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+      } else if (data) {
+        setProfile(data as unknown as WorkerProfile);
       }
     }
 
     fetchProfile();
-  }, []);
+  }, [user, supabase]);
 
   if (!profile) return <p className="p-6">Loading...</p>;
 
