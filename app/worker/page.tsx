@@ -38,7 +38,20 @@ export default function WorkerDashboard() {
     fetchProfile();
   }, [user, supabase]);
 
-  if (!profile) return <p className="p-6">Loading...</p>;
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+        <p className="text-gray-600 mb-4">Loading profile...</p>
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+        >
+          <LogOut size={18} />
+          <span className="font-medium">Logout</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
