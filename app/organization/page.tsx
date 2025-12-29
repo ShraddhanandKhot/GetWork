@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { hardLogout } from "@/utils/auth-helpers";
 
 interface Organization {
   id: string;
@@ -42,11 +43,37 @@ export default function OrganizationDashboard() {
       if (!user) return;
 
       // 1. Fetch Org Profile
-      const { data: orgData, error: orgError } = await supabase
+      let { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .select('*')
         .eq('id', user.id)
         .single();
+
+      // Self-Healing
+      if (!orgData) {
+        console.log("Org Profile missing, attempting self-heal...");
+        const metadata = user.user_metadata || {};
+        if (metadata.role === 'organization') {
+          const { error: insertError } = await supabase.from('organizations').insert({
+            id: user.id,
+            name: metadata.full_name || user.email?.split('@')[0] || "New Org",
+            email: user.email,
+            phone: (metadata.phone || "").replace(/^0+/, ""),
+            location: metadata.location || "",
+            created_at: new Date().toISOString(),
+            verified: false
+          });
+
+          if (!insertError) {
+            const retry = await supabase.from('organizations').select('*').eq('id', user.id).single();
+            orgData = retry.data;
+            if (orgData) {
+              window.location.reload();
+              return;
+            }
+          }
+        }
+      }
 
       if (orgData) setOrg(orgData as Organization);
 
@@ -133,17 +160,14 @@ export default function OrganizationDashboard() {
     });
   };
 
-  const handleFailsafeLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  };
+  // handleFailsafeLogout replaced by global hardLogout
 
   if (!org) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
         <p className="text-gray-600 mb-4">Loading Organization Profile...</p>
         <button
-          onClick={handleFailsafeLogout}
+          onClick={hardLogout}
           className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
         >
           <LogOut size={18} />
@@ -161,7 +185,7 @@ export default function OrganizationDashboard() {
           Welcome, {org.name}
         </h1>
         <button
-          onClick={logout}
+          onClick={hardLogout}
           className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
         >
           <LogOut size={18} />

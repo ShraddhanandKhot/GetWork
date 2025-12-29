@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { hardLogout } from "@/utils/auth-helpers";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -31,6 +32,13 @@ export default function LoginPage() {
         return;
       }
 
+      // 📧 EMAIL VERIFICATION ENFORCEMENT
+      if (!user.email_confirmed_at) {
+        alert("Please verify your email before logging in.");
+        await hardLogout();
+        return;
+      }
+
       // Check user metadata for role
       const metadata = user.user_metadata || {};
       const role = metadata.role || 'worker'; // Default to worker if unknown
@@ -38,67 +46,70 @@ export default function LoginPage() {
       // Attempt to find existing profile
       let profileExists = false;
 
-      if (role === 'worker') {
-        const { data: worker } = await supabase.from('workers').select('id').eq('id', user.id).single();
-        if (worker) profileExists = true;
-      } else if (role === 'organization') {
-        const { data: org } = await supabase.from('organizations').select('id').eq('id', user.id).single();
-        if (org) profileExists = true;
-      } else if (role === 'referral') {
-        const { data: partner } = await supabase.from('referral_partners').select('id').eq('id', user.id).single();
-        if (partner) profileExists = true;
-      }
-
-      // If profile does NOT exist, create it now (Lazy Creation)
-      if (!profileExists) {
-        console.log("Profile missing, creating now from metadata...");
-
-        let createError = null;
-
+      try {
         if (role === 'worker') {
-          const { error: err } = await supabase.from("workers").insert({
-            id: user.id,
-            name: metadata.full_name || "",
-            email: user.email,
-            phone: (metadata.phone || "").replace(/^0+/, ""),
-            age: metadata.age ? Number(metadata.age) : null,
-            skills: metadata.skills ? metadata.skills.split(",").map((s: string) => s.trim()) : [],
-            location: metadata.location || "",
-            created_at: new Date().toISOString(),
-            verified: false
-          });
-          createError = err;
+          const { data: worker } = await supabase.from('workers').select('id').eq('id', user.id).single();
+          if (worker) profileExists = true;
         } else if (role === 'organization') {
-          const { error: err } = await supabase.from("organizations").insert({
-            id: user.id,
-            name: metadata.full_name || "", // Register page uses 'name' which maps to full_name in metadata logic I just wrote
-            email: user.email,
-            phone: (metadata.phone || "").replace(/^0+/, ""),
-            location: metadata.location || "",
-            created_at: new Date().toISOString(),
-            verified: false
-          });
-          createError = err;
+          const { data: org } = await supabase.from('organizations').select('id').eq('id', user.id).single();
+          if (org) profileExists = true;
         } else if (role === 'referral') {
-          const { error: err } = await supabase.from("referral_partners").insert({
-            id: user.id,
-            name: metadata.full_name || "",
-            email: user.email,
-            phone: (metadata.phone || "").replace(/^0+/, "")
-          });
-          createError = err;
+          const { data: partner } = await supabase.from('referral_partners').select('id').eq('id', user.id).single();
+          if (partner) profileExists = true;
         }
 
-        if (createError) {
-          console.error("Failed to create missing profile:", createError);
-          alert("Login successful, but failed to initialize profile: " + createError.message);
-          setLoading(false);
-          return;
+        // If profile does NOT exist, create it now (Lazy Creation)
+        if (!profileExists) {
+          console.log("Profile missing, creating now from metadata...");
+          let createError = null;
+
+          if (role === 'worker') {
+            const { error: err } = await supabase.from("workers").insert({
+              id: user.id,
+              name: metadata.full_name || "",
+              email: user.email,
+              phone: (metadata.phone || "").replace(/^0+/, ""),
+              age: metadata.age ? Number(metadata.age) : null,
+              skills: metadata.skills ? (typeof metadata.skills === 'string' ? metadata.skills.split(",").map((s: string) => s.trim()) : []) : [],
+              location: metadata.location || "",
+              created_at: new Date().toISOString(),
+              verified: false
+            });
+            createError = err;
+          } else if (role === 'organization') {
+            const { error: err } = await supabase.from("organizations").insert({
+              id: user.id,
+              name: metadata.full_name || "",
+              email: user.email,
+              phone: (metadata.phone || "").replace(/^0+/, ""),
+              location: metadata.location || "",
+              created_at: new Date().toISOString(),
+              verified: false
+            });
+            createError = err;
+          } else if (role === 'referral') {
+            const { error: err } = await supabase.from("referral_partners").insert({
+              id: user.id,
+              name: metadata.full_name || "",
+              email: user.email,
+              phone: (metadata.phone || "").replace(/^0+/, "")
+            });
+            createError = err;
+          }
+
+          if (createError) {
+            console.error("Failed to create missing profile:", createError);
+            throw new Error("Profile creation failed: " + createError.message);
+          }
         }
+      } catch (profileErr: any) {
+        alert(profileErr.message || "Failed to load/create profile.");
+        await hardLogout();
+        return;
       }
 
       // Redirect based on role
-      // using window.location.href ensures a hard refresh, preventing "AuthContext" blocking or stale state issues
+      // using window.location.href ensures a hard refresh
       if (role === 'worker') {
         window.location.href = "/worker";
       } else if (role === 'organization') {

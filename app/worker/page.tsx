@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { hardLogout } from "@/utils/auth-helpers";
 
 interface WorkerProfile {
   id: string;
@@ -22,11 +22,47 @@ export default function WorkerDashboard() {
     async function fetchProfile() {
       if (!user) return;
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('workers')
         .select('*')
         .eq('id', user.id)
         .single();
+
+      // Self-Healing: If profile missing, create it from metadata
+      if (!data) {
+        console.log("Worker Profile missing, attempting self-heal...");
+        const metadata = user.user_metadata || {};
+        const intendedRole = metadata.role || 'worker';
+
+        if (intendedRole === 'worker') {
+          const { error: insertError } = await supabase.from('workers').insert({
+            id: user.id,
+            name: metadata.full_name || user.email?.split('@')[0] || "New Worker",
+            email: user.email,
+            phone: (metadata.phone || "").replace(/^0+/, ""),
+            age: metadata.age ? Number(metadata.age) : null,
+            skills: metadata.skills ? (typeof metadata.skills === 'string' ? metadata.skills.split(',') : metadata.skills) : [],
+            location: metadata.location || "",
+            created_at: new Date().toISOString(),
+            verified: false
+          });
+
+          if (insertError) {
+            console.error("Self-heal failed:", insertError);
+          } else {
+            // Retry fetch
+            const retry = await supabase.from('workers').select('*').eq('id', user.id).single();
+            data = retry.data;
+            error = retry.error;
+
+            // Force reload to sync AuthContext role if needed
+            if (data) {
+              window.location.reload();
+              return;
+            }
+          }
+        }
+      }
 
       if (error) {
         console.error("Error fetching profile:", error);
@@ -38,17 +74,14 @@ export default function WorkerDashboard() {
     fetchProfile();
   }, [user, supabase]);
 
-  const handleFailsafeLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  };
+  // handleFailsafeLogout replaced by global hardLogout
 
   if (!profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
         <p className="text-gray-600 mb-4">Loading profile...</p>
         <button
-          onClick={handleFailsafeLogout}
+          onClick={hardLogout}
           className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
         >
           <LogOut size={18} />
@@ -66,7 +99,7 @@ export default function WorkerDashboard() {
           Welcome, {profile.name}
         </h1>
         <button
-          onClick={logout}
+          onClick={hardLogout}
           className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
         >
           <LogOut size={18} />
