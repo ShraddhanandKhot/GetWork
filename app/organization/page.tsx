@@ -26,6 +26,7 @@ export default function OrganizationDashboard() {
   const { logout, user } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
   const [isFallback, setIsFallback] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export default function OrganizationDashboard() {
 
       if (orgError) {
         console.error("Org fetch error:", orgError);
-        // setFetchError(orgError.message); // This variable is not defined in the provided context
+        setFetchError(orgError.message);
       }
       if (orgData) {
         setOrg(orgData as Organization);
