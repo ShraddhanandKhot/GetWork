@@ -19,6 +19,7 @@ export default function WorkerDashboard() {
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [isFallback, setIsFallback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
@@ -97,7 +98,10 @@ export default function WorkerDashboard() {
         };
         setProfile(fallback);
         setIsFallback(true);
+        setProfile(fallback);
+        setIsFallback(true);
       }
+      setIsLoading(false);
     }
 
     fetchProfile();
@@ -105,6 +109,17 @@ export default function WorkerDashboard() {
 
   // handleFailsafeLogout replaced by global hardLogout
 
+  // 1. Loading State
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p className="ml-4 text-blue-600 font-medium">Loading Dashboard...</p>
+      </div>
+    );
+  }
+
+  // 2. Error State
   if (!profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">

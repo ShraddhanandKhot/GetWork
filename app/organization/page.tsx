@@ -27,6 +27,7 @@ export default function OrganizationDashboard() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [isFallback, setIsFallback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -116,6 +117,8 @@ export default function OrganizationDashboard() {
         .eq('org_id', user.id); // Assuming RLS allows this, or purely by ID match
 
       if (jobsData) setJobs(jobsData as unknown as Job[]);
+
+      setIsLoading(false);
     }
 
     fetchData();
@@ -194,6 +197,17 @@ export default function OrganizationDashboard() {
 
   // handleFailsafeLogout replaced by global hardLogout
 
+  // 1. Loading State
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p className="ml-4 text-blue-600 font-medium">Loading Dashboard...</p>
+      </div>
+    );
+  }
+
+  // 2. Error State (only if not loading and no org)
   if (!org) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
