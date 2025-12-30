@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { hardLogout } from "@/utils/auth-helpers";
 
 export default function ReferralPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -266,7 +267,7 @@ export default function ReferralPage() {
 
           <button
             onClick={() => {
-              logout();
+              hardLogout();
               router.refresh();
             }}
             className="w-full py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"

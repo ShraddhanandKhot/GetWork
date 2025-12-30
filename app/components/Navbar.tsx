@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { hardLogout } from "@/utils/auth-helpers";
 import { Home, Briefcase, Users, LayoutDashboard, Building2, LogIn, LogOut, Menu, X } from "lucide-react";
 import * as motion from "framer-motion/client";
 import { AnimatePresence } from "framer-motion";
@@ -90,7 +91,7 @@ export default function Navbar() {
                 </div>
 
                 <button
-                  onClick={logout}
+                  onClick={hardLogout}
                   className="flex items-center gap-2 mt-4 md:mt-0 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full md:w-auto justify-center"
                 >
                   <LogOut size={18} /> Logout

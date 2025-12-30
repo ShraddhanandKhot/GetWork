@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -8,6 +8,14 @@ export default function UpdatePasswordPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const supabase = createClient();
+
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data }) => {
+            if (!data.session) {
+                router.push("/login");
+            }
+        });
+    }, []);
 
     const handleUpdatePassword = async () => {
         setLoading(true);

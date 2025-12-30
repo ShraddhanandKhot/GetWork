@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut } from "lucide-react";
 import { hardLogout } from "@/utils/auth-helpers";
+import { createClient } from "@/utils/supabase/client";
 
 interface WorkerProfile {
   id: string;
@@ -78,14 +79,13 @@ export default function WorkerDashboard() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
-        <p className="text-gray-600 mb-4">Loading profile...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <p className="text-gray-600 mb-4">Unable to load profile</p>
         <button
           onClick={hardLogout}
-          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+          className="px-4 py-2 bg-red-600 text-white rounded"
         >
-          <LogOut size={18} />
-          <span className="font-medium">Logout</span>
+          Logout
         </button>
       </div>
     );

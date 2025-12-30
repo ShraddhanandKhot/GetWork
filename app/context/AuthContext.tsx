@@ -43,9 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkUser();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'PASSWORD_RECOVERY') {
-                router.push("/update-password");
-            }
+            // Removed PASSWORD_RECOVERY loop cause
+
 
             if (session?.user) {
                 setUser(session.user);
@@ -98,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
         if (partner) {
-            setRole('referral_partner');
+            setRole('referral');
             return;
         }
 
