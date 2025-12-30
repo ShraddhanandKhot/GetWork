@@ -15,7 +15,7 @@ interface WorkerProfile {
 }
 
 export default function WorkerDashboard() {
-  const { logout, user, role: contextRole } = useAuth();
+  const { logout, user, role: contextRole, isLoading: authLoading } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [isFallback, setIsFallback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -24,88 +24,83 @@ export default function WorkerDashboard() {
 
   useEffect(() => {
     async function fetchProfile() {
-      if (!user) return;
+      // 1. Wait for Auth
+      if (authLoading) return;
 
-      let { data, error } = await supabase
-        .from('workers')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // 2. Redirect if no user
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
 
-      // Self-Healing: If profile missing, create it from metadata
-      if (!data) {
-        console.log("Worker Profile missing, attempting self-heal...");
-        const metadata = user.user_metadata || {};
-        const intendedRole = metadata.role || 'worker';
+      try {
+        let { data, error } = await supabase
+          .from('workers')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-        if (intendedRole === 'organization') {
-          window.location.href = '/organization';
-          return;
-        }
-        if (intendedRole === 'referral') {
-          window.location.href = '/referral';
-          return;
-        }
+        // Self-Healing
+        if (!data) {
+          console.log("Worker Profile missing, attempting self-heal...");
+          const metadata = user.user_metadata || {};
 
-        if (intendedRole === 'worker') {
-          const { error: insertError } = await supabase.from('workers').insert({
-            id: user.id,
-            name: metadata.full_name || user.email?.split('@')[0] || "New Worker",
-            email: user.email,
-            phone: (metadata.phone || "").replace(/^0+/, ""),
-            age: metadata.age ? Number(metadata.age) : null,
-            skills: metadata.skills ? (typeof metadata.skills === 'string' ? metadata.skills.split(',') : metadata.skills) : [],
-            location: metadata.location || "",
-            created_at: new Date().toISOString(),
-            verified: false
-          });
+          if (metadata.role === 'worker') {
+            const { error: insertError } = await supabase.from('workers').insert({
+              id: user.id,
+              name: metadata.full_name || user.email?.split('@')[0] || "New Worker",
+              email: user.email,
+              phone: (metadata.phone || "").replace(/^0+/, ""),
+              age: metadata.age ? Number(metadata.age) : null,
+              skills: metadata.skills ? (typeof metadata.skills === 'string' ? metadata.skills.split(',') : metadata.skills) : [],
+              location: metadata.location || "",
+              created_at: new Date().toISOString(),
+              verified: false
+            });
 
-          if (insertError) {
-            console.error("Self-heal failed:", insertError);
-          } else {
-            // Retry fetch
-            const retry = await supabase.from('workers').select('*').eq('id', user.id).single();
-            data = retry.data;
-            error = retry.error;
-
-            // Force reload to sync AuthContext role if needed
-            if (data) {
-              window.location.reload();
-              return;
+            if (!insertError) {
+              const retry = await supabase.from('workers').select('*').eq('id', user.id).single();
+              data = retry.data;
+              error = retry.error;
+            } else {
+              console.error("Self-heal failed:", insertError);
             }
           }
         }
-      }
 
-      if (error) {
-        console.error("Worker fetch error:", error);
-        setFetchError(error.message);
+        if (error && !data) {
+          console.error("Worker fetch error:", error);
+          setFetchError(error.message);
+        }
+
+        if (data) {
+          setProfile(data as unknown as WorkerProfile);
+          setIsFallback(false);
+        } else {
+          // Fallback to Metadata
+          console.warn("Using Metadata Fallback for Profile");
+          const metadata = user.user_metadata || {};
+          const fallback: WorkerProfile = {
+            id: user.id,
+            name: metadata.full_name || user.email?.split('@')[0] || "Worker",
+            age: Number(metadata.age) || 0,
+            skills: typeof metadata.skills === 'string' ? metadata.skills.split(',').map((s: string) => s.trim()) : (metadata.skills || []),
+            location: metadata.location || "",
+            phone: metadata.phone || "",
+          };
+          setProfile(fallback);
+          setIsFallback(true);
+        }
+      } catch (err: any) {
+        console.error("Worker Dashboard Fatal:", err);
+        setFetchError(err.message);
+      } finally {
+        setIsLoading(false);
       }
-      if (data) {
-        setProfile(data as unknown as WorkerProfile);
-        setIsFallback(false);
-      } else {
-        // Fallback to Metadata
-        console.warn("Using Metadata Fallback for Profile");
-        const metadata = user.user_metadata || {};
-        const fallback: WorkerProfile = {
-          id: user.id,
-          name: metadata.full_name || user.email?.split('@')[0] || "Worker",
-          age: Number(metadata.age) || 0,
-          skills: typeof metadata.skills === 'string' ? metadata.skills.split(',').map((s: string) => s.trim()) : (metadata.skills || []),
-          location: metadata.location || "",
-          phone: metadata.phone || "",
-        };
-        setProfile(fallback);
-        setIsFallback(true);
-        setProfile(fallback);
-        setIsFallback(true);
-      }
-      setIsLoading(false);
     }
 
     fetchProfile();
-  }, [user, supabase]);
+  }, [user, authLoading, supabase]);
 
   // handleFailsafeLogout replaced by global hardLogout
 
