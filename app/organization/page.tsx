@@ -25,6 +25,7 @@ interface Job {
 export default function OrganizationDashboard() {
   const { logout, user } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -53,6 +54,15 @@ export default function OrganizationDashboard() {
       if (!orgData) {
         console.log("Org Profile missing, attempting self-heal...");
         const metadata = user.user_metadata || {};
+        if (metadata.role === 'worker') {
+          window.location.href = '/worker';
+          return;
+        }
+        if (metadata.role === 'referral') {
+          window.location.href = '/referral';
+          return;
+        }
+
         if (metadata.role === 'organization') {
           const { error: insertError } = await supabase.from('organizations').insert({
             id: user.id,
@@ -75,6 +85,11 @@ export default function OrganizationDashboard() {
         }
       }
 
+
+      if (orgError) {
+        console.error("Org fetch error:", orgError);
+        setFetchError(orgError.message);
+      }
       if (orgData) setOrg(orgData as Organization);
 
       // 2. Fetch Jobs
@@ -164,13 +179,14 @@ export default function OrganizationDashboard() {
 
   if (!org) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <p className="text-gray-600 mb-4">Unable to load profile</p>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <p className="text-gray-600 mb-2">Unable to load profile</p>
+        {fetchError && <p className="text-red-500 text-sm mb-4 bg-red-50 p-2 rounded">Error: {fetchError}</p>}
         <button
           onClick={hardLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded"
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
         >
-          Logout
+          Logout & Retry
         </button>
       </div>
     );

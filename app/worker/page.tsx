@@ -17,6 +17,7 @@ interface WorkerProfile {
 export default function WorkerDashboard() {
   const { logout, user } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -34,6 +35,15 @@ export default function WorkerDashboard() {
         console.log("Worker Profile missing, attempting self-heal...");
         const metadata = user.user_metadata || {};
         const intendedRole = metadata.role || 'worker';
+
+        if (intendedRole === 'organization') {
+          window.location.href = '/organization';
+          return;
+        }
+        if (intendedRole === 'referral') {
+          window.location.href = '/referral';
+          return;
+        }
 
         if (intendedRole === 'worker') {
           const { error: insertError } = await supabase.from('workers').insert({
@@ -67,6 +77,7 @@ export default function WorkerDashboard() {
 
       if (error) {
         console.error("Error fetching profile:", error);
+        setFetchError(error.message);
       } else if (data) {
         setProfile(data as unknown as WorkerProfile);
       }
@@ -79,13 +90,14 @@ export default function WorkerDashboard() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <p className="text-gray-600 mb-4">Unable to load profile</p>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <p className="text-gray-600 mb-2">Unable to load profile</p>
+        {fetchError && <p className="text-red-500 text-sm mb-4 bg-red-50 p-2 rounded">Error: {fetchError}</p>}
         <button
           onClick={hardLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded"
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
         >
-          Logout
+          Logout & Retry
         </button>
       </div>
     );

@@ -101,6 +101,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        // 4. Fallback: Check Metadata
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata?.role) {
+            console.log("Role not found in DB, using metadata:", user.user_metadata.role);
+            setRole(user.user_metadata.role);
+            return;
+        }
+
         setRole(null);
     };
 
