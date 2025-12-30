@@ -28,6 +28,7 @@ export default function OrganizationDashboard() {
   const [isFallback, setIsFallback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -41,88 +42,110 @@ export default function OrganizationDashboard() {
     category: "",
   });
 
+  const addLog = (msg: string) => setDebugLogs(prev => [...prev, `${new Date().toISOString().split('T')[1]} - ${msg}`]);
+
   useEffect(() => {
     async function fetchData() {
-      if (!user) return;
+      addLog("Effect triggered");
+      // 1. Wait for Auth to settle
+      if (authLoading) {
+        addLog("Auth Loading...");
+        return;
+      }
 
-      // 1. Fetch Org Profile
-      let { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // 2. If no user after auth settles, redirect
+      if (!user) {
+        addLog("No User - Redirecting");
+        window.location.href = '/login';
+        return;
+      }
 
-      // Self-Healing
-      if (!orgData) {
-        console.log("Org Profile missing, attempting self-heal...");
-        const metadata = user.user_metadata || {};
-        if (metadata.role === 'worker') {
-          window.location.href = '/worker';
-          return;
-        }
-        if (metadata.role === 'referral') {
-          window.location.href = '/referral';
-          return;
-        }
+      addLog(`User found: ${user.id}`);
 
-        if (metadata.role === 'organization') {
-          const { error: insertError } = await supabase.from('organizations').insert({
-            id: user.id,
-            name: metadata.full_name || user.email?.split('@')[0] || "New Org",
-            email: user.email,
-            phone: (metadata.phone || "").replace(/^0+/, ""),
-            location: metadata.location || "",
-            created_at: new Date().toISOString(),
-            verified: false
-          });
+      try {
+        // 3. Fetch Org Profile
+        let { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-          if (!insertError) {
-            const retry = await supabase.from('organizations').select('*').eq('id', user.id).single();
-            orgData = retry.data;
-            if (orgData) {
-              window.location.reload();
-              return;
+        addLog(`DB Fetch result: Data=${!!orgData}, Err=${orgError?.message || 'None'}`);
+
+        // Self-Healing
+        if (!orgData) {
+          addLog("Attempting Self-Heal...");
+          const metadata = user.user_metadata || {};
+
+          if (metadata.role === 'organization') {
+            const { error: insertError } = await supabase.from('organizations').insert({
+              id: user.id,
+              name: metadata.full_name || user.email?.split('@')[0] || "New Org",
+              email: user.email,
+              phone: (metadata.phone || "").replace(/^0+/, ""),
+              location: metadata.location || "",
+              created_at: new Date().toISOString(),
+              verified: false
+            });
+
+            if (!insertError) {
+              addLog("Self-Heal Insert Success");
+              const retry = await supabase.from('organizations').select('*').eq('id', user.id).single();
+              orgData = retry.data;
+            } else {
+              addLog(`Self-Heal Failed: ${insertError.message}`);
+              console.error("Self-heal insert failed:", insertError);
             }
+          } else {
+            addLog(`Skipping Self-Heal: Role is ${metadata.role}`);
           }
         }
+
+        if (orgError && !orgData) {
+          setFetchError(orgError.message);
+        }
+
+        if (orgData) {
+          addLog("Setting Org from DB");
+          setOrg(orgData as Organization);
+          setIsFallback(false);
+        } else {
+          addLog("Setting Org from Fallback");
+          // Fallback to Metadata
+          const metadata = user.user_metadata || {};
+          const fallback: Organization = {
+            id: user.id,
+            name: metadata.full_name || user.email?.split('@')[0] || "Organization",
+            location: metadata.location || "",
+            phone: metadata.phone || "",
+            email: user.email || ""
+          };
+          setOrg(fallback);
+          setIsFallback(true);
+        }
+
+        // 4. Fetch Jobs
+        addLog("Fetching Jobs...");
+        const { data: jobsData } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('org_id', user.id);
+
+        if (jobsData) setJobs(jobsData as unknown as Job[]);
+        addLog("Jobs Fetched");
+
+      } catch (err: any) {
+        addLog(`CRASH: ${err.message}`);
+        console.error("Dashboard Fatal Error:", err);
+        setFetchError(err.message);
+      } finally {
+        addLog("Setting isLoading false");
+        setIsLoading(false);
       }
-
-
-      if (orgError) {
-        console.error("Org fetch error:", orgError);
-        setFetchError(orgError.message);
-      }
-      if (orgData) {
-        setOrg(orgData as Organization);
-        setIsFallback(false);
-      } else {
-        // Fallback to Metadata
-        const metadata = user.user_metadata || {};
-        console.warn("Using Metadata Fallback for Org");
-        const fallback: Organization = {
-          id: user.id,
-          name: metadata.full_name || user.email?.split('@')[0] || "Organization",
-          location: metadata.location || "",
-          phone: metadata.phone || "",
-          email: user.email || ""
-        };
-        setOrg(fallback);
-        setIsFallback(true);
-      }
-
-      // 2. Fetch Jobs
-      const { data: jobsData, error: jobsError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('org_id', user.id); // Assuming RLS allows this, or purely by ID match
-
-      if (jobsData) setJobs(jobsData as unknown as Job[]);
-
-      setIsLoading(false);
     }
 
     fetchData();
-  }, [user, supabase]);
+  }, [user, authLoading, supabase]);
 
   const postJob = async () => {
     if (!user || !org) return;
@@ -228,6 +251,10 @@ export default function OrganizationDashboard() {
           <p><strong>Role (Metadata):</strong> {user?.user_metadata?.role || "undefined"}</p>
           <p><strong>Role (Context):</strong> {contextRole || "null"}</p>
           <p><strong>Fetch Error:</strong> {fetchError || "None"}</p>
+          <div className="mt-2 text-xs border-t pt-2">
+            <p className="font-bold">Execution Log:</p>
+            {debugLogs.map((log, i) => <p key={i}>{log}</p>)}
+          </div>
           <p className="mt-2 text-gray-500">Share this screenshot with support.</p>
         </div>
       </div>
