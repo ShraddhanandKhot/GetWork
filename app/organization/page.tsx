@@ -23,7 +23,7 @@ interface Job {
 }
 
 export default function OrganizationDashboard() {
-  const { logout, user } = useAuth();
+  const { logout, user, role: contextRole } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
   const [isFallback, setIsFallback] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);

@@ -15,9 +15,10 @@ interface WorkerProfile {
 }
 
 export default function WorkerDashboard() {
-  const { logout, user } = useAuth();
+  const { logout, user, role: contextRole } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [isFallback, setIsFallback] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -75,6 +76,10 @@ export default function WorkerDashboard() {
         }
       }
 
+      if (error) {
+        console.error("Worker fetch error:", error);
+        setFetchError(error.message);
+      }
       if (data) {
         setProfile(data as unknown as WorkerProfile);
         setIsFallback(false);
