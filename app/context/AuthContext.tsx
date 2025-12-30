@@ -23,9 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
 
     useEffect(() => {
-        const checkUser = async () => {
+        const init = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
+
                 if (session?.user) {
                     setUser(session.user);
                     await fetchUserRole(session.user.id);
@@ -34,35 +35,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setRole(null);
                 }
             } catch (error) {
-                console.error("Error checking session:", error);
+                console.error("Error initializing auth:", error);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        checkUser();
+        init();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            // Removed PASSWORD_RECOVERY loop cause
-
-
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session?.user) {
                 setUser(session.user);
-                // Only fetch role if we don't have it or if user changed
-                if (!role || user?.id !== session.user.id) {
-                    await fetchUserRole(session.user.id);
-                }
+                // Only fetch role if we don't have it or if user changed (optimization)
+                // But generally safe to refetch to be sure
+                await fetchUserRole(session.user.id);
             } else {
                 setUser(null);
                 setRole(null);
-                setIsLoading(false);
+                // We do NOT set isLoading to false here, as it should already be false by init
+                // taking over. However, if onAuthStateChange fires before init completes (rare but possible),
+                // it might race. But init's finally block handles the initial load.
             }
         });
 
         return () => {
             subscription.unsubscribe();
         };
-    }, [supabase, role, user?.id]);
+    }, []); // Empty dependency array to run once
 
     const fetchUserRole = async (userId: string) => {
         // Check Worker table

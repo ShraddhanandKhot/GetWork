@@ -23,33 +23,33 @@ export default function WorkerDashboard() {
   const supabase = createClient();
 
   useEffect(() => {
+    // 1. Wait for Auth to settle - GLOBAL BLOCKER
+    if (authLoading) return;
+
+    // 2. Redirect if no user - SESSION BLOCKER
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+
     async function fetchProfile() {
-      // 1. Wait for Auth
-      if (authLoading) return;
-
-      // 2. Redirect if no user
-      if (!user) {
-        window.location.href = '/login';
-        return;
-      }
-
       try {
         let { data, error } = await supabase
           .from('workers')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', user!.id) // user is guaranteed visible here due to checks above
           .single();
 
         // Self-Healing
         if (!data) {
           console.log("Worker Profile missing, attempting self-heal...");
-          const metadata = user.user_metadata || {};
+          const metadata = user!.user_metadata || {};
 
           if (metadata.role === 'worker') {
             const { error: insertError } = await supabase.from('workers').insert({
-              id: user.id,
-              name: metadata.full_name || user.email?.split('@')[0] || "New Worker",
-              email: user.email,
+              id: user!.id,
+              name: metadata.full_name || user!.email?.split('@')[0] || "New Worker",
+              email: user!.email,
               phone: (metadata.phone || "").replace(/^0+/, ""),
               age: metadata.age ? Number(metadata.age) : null,
               skills: metadata.skills ? (typeof metadata.skills === 'string' ? metadata.skills.split(',') : metadata.skills) : [],
@@ -59,7 +59,7 @@ export default function WorkerDashboard() {
             });
 
             if (!insertError) {
-              const retry = await supabase.from('workers').select('*').eq('id', user.id).single();
+              const retry = await supabase.from('workers').select('*').eq('id', user!.id).single();
               data = retry.data;
               error = retry.error;
             } else {
@@ -79,10 +79,10 @@ export default function WorkerDashboard() {
         } else {
           // Fallback to Metadata
           console.warn("Using Metadata Fallback for Profile");
-          const metadata = user.user_metadata || {};
+          const metadata = user!.user_metadata || {};
           const fallback: WorkerProfile = {
-            id: user.id,
-            name: metadata.full_name || user.email?.split('@')[0] || "Worker",
+            id: user!.id,
+            name: metadata.full_name || user!.email?.split('@')[0] || "Worker",
             age: Number(metadata.age) || 0,
             skills: typeof metadata.skills === 'string' ? metadata.skills.split(',').map((s: string) => s.trim()) : (metadata.skills || []),
             location: metadata.location || "",
@@ -104,12 +104,12 @@ export default function WorkerDashboard() {
 
   // handleFailsafeLogout replaced by global hardLogout
 
-  // 1. Loading State
-  if (isLoading) {
+  // 1. Loading State (Global Auth or Local Fetch)
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="ml-4 text-blue-600 font-medium">Loading Dashboard...</p>
+        <p className="ml-4 text-blue-600 font-medium">Loading session...</p>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function WorkerDashboard() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
         <p className="text-gray-600 mb-2">Unable to load profile</p>
-        {fetchError && <p className="text-red-500 text-sm mb-4 bg-red-50 p-2 rounded">Error: {fetchError}</p>}
+        <p className="text-sm text-gray-500 mb-4">Reason: {fetchError || "Unknown Session/DB Error"}</p>
         <button
           onClick={hardLogout}
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
