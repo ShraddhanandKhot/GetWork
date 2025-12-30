@@ -17,7 +17,7 @@ interface WorkerProfile {
 export default function WorkerDashboard() {
   const { logout, user } = useAuth();
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -75,11 +75,23 @@ export default function WorkerDashboard() {
         }
       }
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        setFetchError(error.message);
-      } else if (data) {
+      if (data) {
         setProfile(data as unknown as WorkerProfile);
+        setIsFallback(false);
+      } else {
+        // Fallback to Metadata
+        console.warn("Using Metadata Fallback for Profile");
+        const metadata = user.user_metadata || {};
+        const fallback: WorkerProfile = {
+          id: user.id,
+          name: metadata.full_name || user.email?.split('@')[0] || "Worker",
+          age: Number(metadata.age) || 0,
+          skills: typeof metadata.skills === 'string' ? metadata.skills.split(',').map((s: string) => s.trim()) : (metadata.skills || []),
+          location: metadata.location || "",
+          phone: metadata.phone || "",
+        };
+        setProfile(fallback);
+        setIsFallback(true);
       }
     }
 
@@ -99,6 +111,17 @@ export default function WorkerDashboard() {
         >
           Logout & Retry
         </button>
+
+        {/* DEBUG INFO */}
+        <div className="mt-8 p-4 bg-gray-100 rounded text-left text-xs font-mono max-w-lg w-full overflow-auto border border-gray-300">
+          <p className="font-bold border-b border-gray-300 pb-2 mb-2">Debug Information</p>
+          <p><strong>User ID:</strong> {user?.id}</p>
+          <p><strong>Email:</strong> {user?.email}</p>
+          <p><strong>Role (Metadata):</strong> {user?.user_metadata?.role || "undefined"}</p>
+          <p><strong>Role (Context):</strong> {contextRole || "null"}</p>
+          <p><strong>Fetch Error:</strong> {fetchError || "None"}</p>
+          <p className="mt-2 text-gray-500">Share this screenshot with support.</p>
+        </div>
       </div>
     );
   }
@@ -107,8 +130,9 @@ export default function WorkerDashboard() {
     <div className="min-h-screen bg-gray-50 p-6">
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-blue-600">
+        <h1 className="text-3xl font-bold text-blue-600 flex items-center gap-2">
           Welcome, {profile.name}
+          {isFallback && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-300">Offline Mode</span>}
         </h1>
         <button
           onClick={hardLogout}

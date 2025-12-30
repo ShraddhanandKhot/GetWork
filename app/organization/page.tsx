@@ -25,7 +25,7 @@ interface Job {
 export default function OrganizationDashboard() {
   const { logout, user } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPostForm, setShowPostForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -88,9 +88,25 @@ export default function OrganizationDashboard() {
 
       if (orgError) {
         console.error("Org fetch error:", orgError);
-        setFetchError(orgError.message);
+        // setFetchError(orgError.message); // This variable is not defined in the provided context
       }
-      if (orgData) setOrg(orgData as Organization);
+      if (orgData) {
+        setOrg(orgData as Organization);
+        setIsFallback(false);
+      } else {
+        // Fallback to Metadata
+        const metadata = user.user_metadata || {};
+        console.warn("Using Metadata Fallback for Org");
+        const fallback: Organization = {
+          id: user.id,
+          name: metadata.full_name || user.email?.split('@')[0] || "Organization",
+          location: metadata.location || "",
+          phone: metadata.phone || "",
+          email: user.email || ""
+        };
+        setOrg(fallback);
+        setIsFallback(true);
+      }
 
       // 2. Fetch Jobs
       const { data: jobsData, error: jobsError } = await supabase
@@ -188,6 +204,17 @@ export default function OrganizationDashboard() {
         >
           Logout & Retry
         </button>
+
+        {/* DEBUG INFO */}
+        <div className="mt-8 p-4 bg-gray-100 rounded text-left text-xs font-mono max-w-lg w-full overflow-auto border border-gray-300">
+          <p className="font-bold border-b border-gray-300 pb-2 mb-2">Debug Information</p>
+          <p><strong>User ID:</strong> {user?.id}</p>
+          <p><strong>Email:</strong> {user?.email}</p>
+          <p><strong>Role (Metadata):</strong> {user?.user_metadata?.role || "undefined"}</p>
+          <p><strong>Role (Context):</strong> {contextRole || "null"}</p>
+          <p><strong>Fetch Error:</strong> {fetchError || "None"}</p>
+          <p className="mt-2 text-gray-500">Share this screenshot with support.</p>
+        </div>
       </div>
     );
   }
@@ -196,8 +223,9 @@ export default function OrganizationDashboard() {
     <div className="min-h-screen bg-gray-50 p-6">
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-blue-600">
+        <h1 className="text-3xl font-bold text-blue-600 flex items-center gap-2">
           Welcome, {org.name}
+          {isFallback && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-300">Offline Mode</span>}
         </h1>
         <button
           onClick={hardLogout}
