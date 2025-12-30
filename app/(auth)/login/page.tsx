@@ -41,7 +41,9 @@ export default function LoginPage() {
       }
 
       // Use selected role instead of metadata role
+      // Use selected role instead of metadata role
       const role = selectedRole;
+      const metadata = user.user_metadata || {};
 
       // Attempt to find existing profile
       let profileExists = false;
