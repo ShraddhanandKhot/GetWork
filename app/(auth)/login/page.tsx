@@ -8,6 +8,7 @@ import Link from "next/link";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState<"worker" | "organization" | "referral">("worker");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -39,9 +40,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Check user metadata for role
-      const metadata = user.user_metadata || {};
-      const role = metadata.role || 'worker'; // Default to worker if unknown
+      // Use selected role instead of metadata role
+      const role = selectedRole;
 
       // Attempt to find existing profile
       let profileExists = false;
@@ -134,49 +134,79 @@ export default function LoginPage() {
           Login to GetWork
         </h2>
 
-        <div className="mb-4">
-          <p className="text-gray-500 text-sm text-center mb-4">
-            Sign in with your email and password
-          </p>
-        </div>
-
-        <input
-          type="email"
-          placeholder="Email Address"
-          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button
-          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          onClick={handleLogin}
-          disabled={loading}
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-
-        <p className="text-center mt-4 text-black">
-          Don’t have an account?{" "}
-          <Link href="/register" className="text-blue-600 font-semibold">
-            Register
-          </Link>
+        <p className="text-gray-500 text-sm text-center mb-4">
+          Sign in with your email and password
         </p>
-        <div className="text-center mt-2">
-          <Link href="/forgot-password" className="text-blue-600 text-sm">
-            Forgot Password?
-          </Link>
-        </div>
-
       </div>
+
+      {/* Role Selection */}
+      <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
+        <button
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "worker"
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-gray-500 hover:text-gray-700"
+            }`}
+          onClick={() => setSelectedRole("worker")}
+        >
+          Worker
+        </button>
+        <button
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "organization"
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-gray-500 hover:text-gray-700"
+            }`}
+          onClick={() => setSelectedRole("organization")}
+        >
+          Organization
+        </button>
+        <button
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "referral"
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-gray-500 hover:text-gray-700"
+            }`}
+          onClick={() => setSelectedRole("referral")}
+        >
+          Referral
+        </button>
+      </div>
+
+      <input
+        type="email"
+        placeholder="Email Address"
+        className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <button
+        className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        onClick={handleLogin}
+        disabled={loading}
+      >
+        {loading ? "Logging in..." : "Login"}
+      </button>
+
+      <p className="text-center mt-4 text-black">
+        Don’t have an account?{" "}
+        <Link href="/register" className="text-blue-600 font-semibold">
+          Register
+        </Link>
+      </p>
+      <div className="text-center mt-2">
+        <Link href="/forgot-password" className="text-blue-600 text-sm">
+          Forgot Password?
+        </Link>
+      </div>
+
     </div>
+    </div >
   );
 }
