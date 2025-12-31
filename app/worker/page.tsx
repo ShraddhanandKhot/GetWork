@@ -32,16 +32,31 @@ export default function WorkerDashboard() {
       return;
     }
 
+    // 3. HARD ROLE GUARD
+    if (contextRole !== 'worker' && contextRole !== null) {
+      if (contextRole === 'organization') {
+        window.location.href = '/organization';
+        return;
+      }
+      if (contextRole === 'referral') {
+        window.location.href = '/referral';
+        return;
+      }
+    }
+
     async function fetchProfile() {
       try {
+        // 4. PREFERRED FETCH PATTERN: limit(1) instead of single()
         let { data, error } = await supabase
           .from('workers')
           .select('*')
-          .eq('id', user!.id) // user is guaranteed visible here due to checks above
-          .single();
+          .eq('id', user!.id)
+          .limit(1);
+
+        let profileData = data?.[0] ?? null;
 
         // Self-Healing
-        if (!data) {
+        if (!profileData) {
           console.log("Worker Profile missing, attempting self-heal...");
           const metadata = user!.user_metadata || {};
 
@@ -59,22 +74,21 @@ export default function WorkerDashboard() {
             });
 
             if (!insertError) {
-              const retry = await supabase.from('workers').select('*').eq('id', user!.id).single();
-              data = retry.data;
-              error = retry.error;
+              const retry = await supabase.from('workers').select('*').eq('id', user!.id).limit(1);
+              profileData = retry.data?.[0] ?? null;
             } else {
               console.error("Self-heal failed:", insertError);
             }
           }
         }
 
-        if (error && !data) {
+        if (error && !profileData) {
           console.error("Worker fetch error:", error);
           setFetchError(error.message);
         }
 
-        if (data) {
-          setProfile(data as unknown as WorkerProfile);
+        if (profileData) {
+          setProfile(profileData as unknown as WorkerProfile);
           setIsFallback(false);
         } else {
           // Fallback to Metadata
@@ -100,7 +114,7 @@ export default function WorkerDashboard() {
     }
 
     fetchProfile();
-  }, [user, authLoading, supabase]);
+  }, [user, authLoading, contextRole, supabase]);
 
   // handleFailsafeLogout replaced by global hardLogout
 

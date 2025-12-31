@@ -1,8 +1,9 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { LogOut } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/utils/supabase/client";
+import { LogOut } from "lucide-react";
 import { hardLogout } from "@/utils/auth-helpers";
 
 interface Organization {
@@ -23,368 +24,120 @@ interface Job {
 }
 
 export default function OrganizationDashboard() {
-  const { logout, user, role: contextRole, isLoading: authLoading } = useAuth();
-  const [org, setOrg] = useState<Organization | null>(null);
-  const [isFallback, setIsFallback] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [showPostForm, setShowPostForm] = useState(false);
-  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const { user, role, isLoading: authLoading } = useAuth();
   const supabase = createClient();
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    salary_range: "",
-    location: "",
-    category: "",
-  });
+  const [org, setOrg] = useState<Organization | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Wait for Auth to settle - GLOBAL BLOCKER
     if (authLoading) return;
 
-    // 2. Redirect if no user - SESSION BLOCKER
     if (!user) {
-      window.location.href = '/login';
+      window.location.href = "/login";
       return;
     }
 
-    async function fetchData() {
-      try {
-        // 3. Fetch Org Profile
-        let { data: orgData, error: orgError } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', user!.id)
-          .single();
-
-        // Self-Healing
-        if (!orgData) {
-          console.log("Org Profile missing, attempting self-heal...");
-          const metadata = user!.user_metadata || {};
-
-          if (metadata.role === 'organization') {
-            const { error: insertError } = await supabase.from('organizations').insert({
-              id: user!.id,
-              name: metadata.full_name || user!.email?.split('@')[0] || "New Org",
-              email: user!.email,
-              phone: (metadata.phone || "").replace(/^0+/, ""),
-              location: metadata.location || "",
-              created_at: new Date().toISOString(),
-              verified: false
-            });
-
-            if (!insertError) {
-              const retry = await supabase.from('organizations').select('*').eq('id', user!.id).single();
-              orgData = retry.data;
-            } else {
-              console.error("Self-heal insert failed:", insertError);
-            }
-          }
-        }
-
-        if (orgError && !orgData) {
-          setFetchError(orgError.message);
-        }
-
-        if (orgData) {
-          setOrg(orgData as Organization);
-          setIsFallback(false);
-        } else {
-          // Fallback to Metadata
-          const metadata = user!.user_metadata || {};
-          console.warn("Using Metadata Fallback for Org");
-          const fallback: Organization = {
-            id: user!.id,
-            name: metadata.full_name || user!.email?.split('@')[0] || "Organization",
-            location: metadata.location || "",
-            phone: metadata.phone || "",
-            email: user!.email || ""
-          };
-          setOrg(fallback);
-          setIsFallback(true);
-        }
-
-        // 4. Fetch Jobs
-        const { data: jobsData } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('org_id', user!.id);
-
-        if (jobsData) setJobs(jobsData as unknown as Job[]);
-
-      } catch (err: any) {
-        console.error("Dashboard Fatal Error:", err);
-        setFetchError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
+    if (role && role !== "organization") {
+      window.location.href = `/${role}`;
+      return;
     }
 
-    fetchData();
-  }, [user, authLoading, supabase]);
+    const load = async () => {
+      // Fetch org
+      const { data } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("id", user.id)
+        .limit(1);
 
-  const postJob = async () => {
-    if (!user || !org) return;
+      let orgData = data?.[0] ?? null;
 
-    const payload = {
-      title: form.title,
-      description: form.description,
-      salary_range: form.salary_range,
-      location: form.location,
-      category: form.category,
-      org_id: user.id
+      // Self-heal
+      if (!orgData && user.user_metadata?.role === "organization") {
+        await supabase.from("organizations").insert({
+          id: user.id,
+          name: user.user_metadata.full_name || "Organization",
+          email: user.email,
+          phone: user.user_metadata.phone || "",
+          location: user.user_metadata.location || "",
+          verified: false,
+        });
+
+        const retry = await supabase
+          .from("organizations")
+          .select("*")
+          .eq("id", user.id)
+          .limit(1);
+
+        orgData = retry.data?.[0] ?? null;
+      }
+
+      setOrg(orgData);
+
+      // Fetch jobs
+      const { data: jobsData } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("org_id", user.id);
+
+      setJobs(jobsData || []);
+      setLoading(false);
     };
 
-    let error;
+    load();
+  }, [authLoading, user, role]);
 
-    if (editingJobId) {
-      // Update
-      const { error: updateError } = await supabase
-        .from('jobs')
-        .update(payload)
-        .eq('id', editingJobId);
-      error = updateError;
-    } else {
-      // Create
-      const { error: insertError } = await supabase
-        .from('jobs')
-        .insert(payload);
-      error = insertError;
-    }
-
-    if (error) {
-      alert("Failed to save job: " + error.message);
-    } else {
-      alert(editingJobId ? "Job updated!" : "Job posted!");
-      setShowPostForm(false);
-      setEditingJobId(null);
-      setForm({ title: "", description: "", salary_range: "", location: "", category: "" });
-
-      // Refresh Jobs
-      const { data: jobsData } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('org_id', user.id);
-      if (jobsData) setJobs(jobsData as unknown as Job[]);
-    }
-  };
-
-  const deleteJob = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this job?")) return;
-
-    const { error } = await supabase.from('jobs').delete().eq('id', id);
-
-    if (error) {
-      alert("Failed to delete: " + error.message);
-    } else {
-      alert("Job deleted");
-      setJobs(jobs.filter((job) => job.id !== id));
-    }
-  };
-
-  const startEdit = (job: Job) => {
-    setShowPostForm(true);
-    setEditingJobId(job.id);
-    setForm({
-      title: job.title,
-      description: job.description || "",
-      salary_range: job.salary_range || "",
-      location: job.location,
-      category: job.category || "",
-    });
-  };
-
-  // handleFailsafeLogout replaced by global hardLogout
-
-  // 1. Loading State (Global Auth or Local Fetch)
-  if (authLoading || isLoading) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="ml-4 text-blue-600 font-medium">Loading session...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-blue-600 font-medium">Loading session…</p>
       </div>
     );
   }
 
-  // 2. Error State (only if not loading and no org)
   if (!org) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
-        <p className="text-gray-600 mb-2">Unable to load profile</p>
-        <p className="text-sm text-gray-500 mb-4">Reason: {fetchError || "Unknown Session/DB Error"}</p>
-        <button
-          onClick={hardLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-        >
-          Logout & Retry
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <p className="mb-4">Unable to load organization</p>
+        <button onClick={hardLogout} className="bg-red-600 text-white px-4 py-2 rounded">
+          Logout
         </button>
-
-        {/* DEBUG INFO */}
-        <div className="mt-8 p-4 bg-gray-100 rounded text-left text-xs font-mono max-w-lg w-full overflow-auto border border-gray-300">
-          <p className="font-bold border-b border-gray-300 pb-2 mb-2">Debug Information</p>
-          <p><strong>User ID:</strong> {user?.id}</p>
-          <p><strong>Email:</strong> {user?.email}</p>
-          <p><strong>Role (Metadata):</strong> {user?.user_metadata?.role || "undefined"}</p>
-          <p><strong>Role (Context):</strong> {contextRole || "null"}</p>
-          <p><strong>Fetch Error:</strong> {fetchError || "None"}</p>
-          <p className="mt-2 text-gray-500">Share this screenshot with support.</p>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-blue-600 flex items-center gap-2">
-          Welcome, {org.name}
-          {isFallback && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-300">Offline Mode</span>}
-        </h1>
-        <button
-          onClick={hardLogout}
-          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-        >
-          <LogOut size={18} />
-          <span className="font-medium">Logout</span>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex justify-between mb-6">
+        <h1 className="text-2xl font-bold">Welcome, {org.name}</h1>
+        <button onClick={hardLogout} className="flex items-center gap-2 text-red-600">
+          <LogOut size={18} /> Logout
         </button>
       </div>
 
-      {/* ORG DETAILS */}
-      <div className="bg-white p-6 rounded-xl shadow mb-6">
-        <h2 className="text-xl font-semibold text-black">Organization Details</h2>
-
-        <div className="mt-3 space-y-2 text-gray-700">
-          <p><strong>Name:</strong> {org.name}</p>
-          <p><strong>Location:</strong> {org.location}</p>
-          <p><strong>Phone:</strong> {org.phone}</p>
-          <p><strong>Email:</strong> {org.email}</p>
-        </div>
+      <div className="bg-white p-4 rounded mb-6">
+        <p><b>Email:</b> {org.email}</p>
+        <p><b>Location:</b> {org.location}</p>
+        <p><b>Phone:</b> {org.phone}</p>
       </div>
 
-      {/* JOB SECTION */}
-      <div className="bg-white p-6 rounded-xl shadow mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black">Your Posted Jobs</h2>
+      <div className="bg-white p-4 rounded">
+        <h2 className="font-bold mb-3">Your Jobs</h2>
 
-          <button
-            onClick={() => {
-              setForm({ title: "", description: "", salary_range: "", location: "", category: "" });
-              setEditingJobId(null);
-              setShowPostForm(true);
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-          >
-            + Post New Job
-          </button>
-        </div>
-
-        {!Array.isArray(jobs) || jobs.length === 0 ? (
-          <p className="text-gray-600">No jobs posted yet.</p>
+        {jobs.length === 0 ? (
+          <p>No jobs posted yet.</p>
         ) : (
-          jobs.map((job) => (
-            <div key={job.id} className="p-3 border rounded-lg mb-3">
-              <h3 className="font-bold text-gray-600">{job.title}</h3>
-              <p className="text-sm text-gray-600">{job.location}</p>
-              <p className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full inline-block text-sm">{job.salary_range}</p>
-
-              <div className="flex gap-3 mt-3">
-                <button
-                  onClick={() => startEdit(job)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => deleteJob(job.id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded"
-                >
-                  Delete
-                </button>
-              </div>
+          jobs.map(job => (
+            <div key={job.id} className="border p-3 mb-2 rounded">
+              <p className="font-semibold">{job.title}</p>
+              <p>{job.location}</p>
+              <p className="text-green-600">{job.salary_range}</p>
             </div>
           ))
         )}
       </div>
-
-      {/* JOB POST FORM */}
-      {showPostForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4 text-gray-400">{editingJobId ? "Edit Job" : "Post New Job"}</h2>
-
-            <input
-              className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
-              placeholder="Job Title"
-              list="job-titles"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-            <datalist id="job-titles">
-              <option value="Cleaning" />
-              <option value="Sweeper" />
-              <option value="Cook" />
-              <option value="Driver" />
-              <option value="Gardener" />
-              <option value="Nanny" />
-              <option value="Security Guard" />
-              <option value="Other" />
-            </datalist>
-
-            <input
-              className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
-              placeholder="Location"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-            />
-
-            <input
-              type="text"
-              className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
-              placeholder="Salary (e.g. 5000-10000)"
-              value={form.salary_range}
-              onChange={(e) =>
-                setForm({ ...form, salary_range: e.target.value })
-              }
-            />
-
-            <input
-              className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
-              placeholder="Category"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            />
-
-            <textarea
-              className="w-full p-3 border rounded-lg mb-3 placeholder:text-gray-400 text-gray-600"
-              placeholder="Description"
-              rows={4}
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-            />
-
-            <button
-              onClick={postJob}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg mb-2"
-            >
-              {editingJobId ? "Update Job" : "Post Job"}
-            </button>
-
-            <button
-              className="w-full py-3 bg-gray-400 text-white rounded-lg"
-              onClick={() => setShowPostForm(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,13 +1,15 @@
 "use client";
+
 import { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { User, Session } from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js";
 import { hardLogout } from "@/utils/auth-helpers";
+
+type Role = "worker" | "organization" | "referral" | null;
 
 interface AuthContextType {
     isLoggedIn: boolean;
-    role: string | null;
+    role: Role;
     user: User | null;
     logout: () => Promise<void>;
     isLoading: boolean;
@@ -16,107 +18,133 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [role, setRole] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const router = useRouter();
     const supabase = createClient();
 
+    const [user, setUser] = useState<User | null>(null);
+    const [role, setRole] = useState<Role>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    /**
+     * Fetch role WITHOUT using `.single()`
+     * `.single()` + RLS causes silent failures
+     */
+    const fetchUserRole = async (userId: string) => {
+        try {
+            // 1️⃣ Worker
+            const { data: worker } = await supabase
+                .from("workers")
+                .select("id")
+                .eq("id", userId)
+                .limit(1);
+
+            if (worker && worker.length > 0) {
+                setRole("worker");
+                return;
+            }
+
+            // 2️⃣ Organization
+            const { data: org } = await supabase
+                .from("organizations")
+                .select("id")
+                .eq("id", userId)
+                .limit(1);
+
+            if (org && org.length > 0) {
+                setRole("organization");
+                return;
+            }
+
+            // 3️⃣ Referral
+            const { data: ref } = await supabase
+                .from("referral_partners")
+                .select("id")
+                .eq("id", userId)
+                .limit(1);
+
+            if (ref && ref.length > 0) {
+                setRole("referral");
+                return;
+            }
+
+            // 4️⃣ Metadata fallback (last resort)
+            const { data } = await supabase.auth.getUser();
+            const metaRole = data.user?.user_metadata?.role;
+
+            if (metaRole === "worker" || metaRole === "organization" || metaRole === "referral") {
+                setRole(metaRole);
+                return;
+            }
+
+            setRole(null);
+        } catch (err) {
+            console.error("Failed to fetch user role:", err);
+            setRole(null);
+        }
+    };
+
     useEffect(() => {
+        let cancelled = false;
+
         const init = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data } = await supabase.auth.getSession();
+                const sessionUser = data.session?.user ?? null;
 
-                if (session?.user) {
-                    setUser(session.user);
-                    await fetchUserRole(session.user.id);
+                if (cancelled) return;
+
+                setUser(sessionUser);
+
+                if (sessionUser) {
+                    await fetchUserRole(sessionUser.id);
                 } else {
-                    setUser(null);
                     setRole(null);
                 }
-            } catch (error) {
-                console.error("Error initializing auth:", error);
+            } catch (err) {
+                console.error("Auth initialization error:", err);
+                setUser(null);
+                setRole(null);
             } finally {
-                setIsLoading(false);
+                if (!cancelled
+                ) setIsLoading(false);
             }
         };
 
         init();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            if (session?.user) {
-                setUser(session.user);
-                // Only fetch role if we don't have it or if user changed (optimization)
-                // But generally safe to refetch to be sure
-                await fetchUserRole(session.user.id);
-            } else {
-                setUser(null);
-                setRole(null);
-                // We do NOT set isLoading to false here, as it should already be false by init
-                // taking over. However, if onAuthStateChange fires before init completes (rare but possible),
-                // it might race. But init's finally block handles the initial load.
+        // Auth state listener
+        const { data: listener } = supabase.auth.onAuthStateChange(
+            async (_event, session) => {
+                const sessionUser = session?.user ?? null;
+                setUser(sessionUser);
+
+                if (sessionUser) {
+                    await fetchUserRole(sessionUser.id);
+                } else {
+                    setRole(null);
+                }
             }
-        });
+        );
 
         return () => {
-            subscription.unsubscribe();
+            cancelled = true;
+            listener.subscription.unsubscribe();
         };
-    }, []); // Empty dependency array to run once
-
-    const fetchUserRole = async (userId: string) => {
-        // Check Worker table
-        const { data: worker } = await supabase
-            .from('workers')
-            .select('id')
-            .eq('id', userId)
-            .single();
-
-        if (worker) {
-            setRole('worker');
-            return;
-        }
-
-        // Check Organization table
-        const { data: org } = await supabase
-            .from('organizations')
-            .select('id')
-            .eq('id', userId)
-            .single();
-
-        if (org) {
-            setRole('organization');
-            return;
-        }
-
-        // Check Referral Partner table
-        const { data: partner } = await supabase
-            .from('referral_partners')
-            .select('id')
-            .eq('id', userId)
-            .single();
-
-        if (partner) {
-            setRole('referral');
-            return;
-        }
-
-        // 4. Fallback: Check Metadata
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.user_metadata?.role) {
-            console.log("Role not found in DB, using metadata:", user.user_metadata.role);
-            setRole(user.user_metadata.role);
-            return;
-        }
-
-        setRole(null);
-    };
+    }, []);
 
     const logout = async () => {
         await hardLogout();
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn: !!user, role, user, logout, isLoading }}>
+        <AuthContext.Provider
+            value={{
+                isLoggedIn: !!user,
+                role,
+                user,
+                logout,
+                isLoading,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
@@ -124,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
     const context = useContext(AuthContext);
-    if (context === undefined) {
+    if (!context) {
         throw new Error("useAuth must be used within an AuthProvider");
     }
     return context;
