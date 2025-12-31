@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../context/AuthContext";
+
 import { createClient } from "@/utils/supabase/client";
 import { LogOut } from "lucide-react";
 import { hardLogout } from "@/utils/auth-helpers";
