@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-
 import { createClient } from "@/utils/supabase/client";
 import { LogOut } from "lucide-react";
 import { hardLogout } from "@/utils/auth-helpers";
@@ -33,63 +32,80 @@ export default function OrganizationDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // ⛔ Wait for auth to finish
     if (authLoading) return;
 
+    // ⛔ Not logged in
     if (!user) {
+      setLoading(false);
       window.location.href = "/login";
       return;
     }
 
+    // ⛔ Wrong role
     if (role && role !== "organization") {
+      setLoading(false);
       window.location.href = `/${role}`;
       return;
     }
 
+    let cancelled = false;
+
     const load = async () => {
-      // Fetch org
-      const { data } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("id", user.id)
-        .limit(1);
-
-      let orgData = data?.[0] ?? null;
-
-      // Self-heal
-      if (!orgData && user.user_metadata?.role === "organization") {
-        await supabase.from("organizations").insert({
-          id: user.id,
-          name: user.user_metadata.full_name || "Organization",
-          email: user.email,
-          phone: user.user_metadata.phone || "",
-          location: user.user_metadata.location || "",
-          verified: false,
-        });
-
-        const retry = await supabase
+      try {
+        // 1️⃣ Fetch organization
+        const { data } = await supabase
           .from("organizations")
           .select("*")
           .eq("id", user.id)
           .limit(1);
 
-        orgData = retry.data?.[0] ?? null;
+        let orgData = data?.[0] ?? null;
+
+        // 2️⃣ Self-heal missing org profile
+        if (!orgData && user.user_metadata?.role === "organization") {
+          await supabase.from("organizations").insert({
+            id: user.id,
+            name: user.user_metadata.full_name || "Organization",
+            email: user.email,
+            phone: user.user_metadata.phone || "",
+            location: user.user_metadata.location || "",
+            verified: false,
+          });
+
+          const retry = await supabase
+            .from("organizations")
+            .select("*")
+            .eq("id", user.id)
+            .limit(1);
+
+          orgData = retry.data?.[0] ?? null;
+        }
+
+        if (!cancelled) setOrg(orgData);
+
+        // 3️⃣ Fetch jobs
+        const { data: jobsData } = await supabase
+          .from("jobs")
+          .select("*")
+          .eq("org_id", user.id);
+
+        if (!cancelled) setJobs(jobsData || []);
+      } catch (err) {
+        console.error("Organization dashboard error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      setOrg(orgData);
-
-      // Fetch jobs
-      const { data: jobsData } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("org_id", user.id);
-
-      setJobs(jobsData || []);
-      setLoading(false);
     };
 
     load();
-  }, [authLoading, user, role]);
 
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, role, supabase]);
+
+  // 🔄 Only ONE loading gate
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -102,7 +118,10 @@ export default function OrganizationDashboard() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <p className="mb-4">Unable to load organization</p>
-        <button onClick={hardLogout} className="bg-red-600 text-white px-4 py-2 rounded">
+        <button
+          onClick={hardLogout}
+          className="bg-red-600 text-white px-4 py-2 rounded"
+        >
           Logout
         </button>
       </div>
