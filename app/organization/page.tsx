@@ -19,12 +19,10 @@ interface Job {
   title: string;
   location: string;
   salary_range: string;
-  description?: string;
-  category?: string;
 }
 
 export default function OrganizationDashboard() {
-  const { user, role, isLoading: authLoading } = useAuth();
+  const { user, role } = useAuth(); // ❌ removed authLoading
   const supabase = createClient();
 
   const [org, setOrg] = useState<Organization | null>(null);
@@ -32,19 +30,10 @@ export default function OrganizationDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ⛔ Wait for auth to finish
-    if (authLoading) return;
+    if (!user) return;
 
-    // ⛔ Not logged in
-    if (!user) {
-      setLoading(false);
-      window.location.href = "/login";
-      return;
-    }
-
-    // ⛔ Wrong role
+    // ⛔ Wrong role guard
     if (role && role !== "organization") {
-      setLoading(false);
       window.location.href = `/${role}`;
       return;
     }
@@ -53,38 +42,44 @@ export default function OrganizationDashboard() {
 
     const load = async () => {
       try {
-        // 1️⃣ Fetch organization
-        const { data } = await supabase
+        // ✅ Fetch org safely
+        const { data, error } = await supabase
           .from("organizations")
           .select("*")
           .eq("id", user.id)
-          .limit(1);
+          .maybeSingle();
 
-        let orgData = data?.[0] ?? null;
+        console.log("ORG FETCH:", { data, error, userId: user.id });
 
-        // 2️⃣ Self-heal missing org profile
+        let orgData = data;
+
+        // ✅ Self-heal if missing
         if (!orgData && user.user_metadata?.role === "organization") {
-          await supabase.from("organizations").insert({
-            id: user.id,
-            name: user.user_metadata.full_name || "Organization",
-            email: user.email,
-            phone: user.user_metadata.phone || "",
-            location: user.user_metadata.location || "",
-            verified: false,
-          });
+          const { error: insertError } = await supabase
+            .from("organizations")
+            .insert({
+              id: user.id,
+              name: user.user_metadata.full_name || "Organization",
+              email: user.email,
+              phone: user.user_metadata.phone || "",
+              location: user.user_metadata.location || "",
+              verified: false,
+            });
+
+          console.log("ORG INSERT ERROR:", insertError);
 
           const retry = await supabase
             .from("organizations")
             .select("*")
             .eq("id", user.id)
-            .limit(1);
+            .maybeSingle();
 
-          orgData = retry.data?.[0] ?? null;
+          orgData = retry.data;
         }
 
         if (!cancelled) setOrg(orgData);
 
-        // 3️⃣ Fetch jobs
+        // ✅ Fetch jobs
         const { data: jobsData } = await supabase
           .from("jobs")
           .select("*")
@@ -92,7 +87,7 @@ export default function OrganizationDashboard() {
 
         if (!cancelled) setJobs(jobsData || []);
       } catch (err) {
-        console.error("Organization dashboard error:", err);
+        console.error("Organization dashboard fatal error:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -103,21 +98,27 @@ export default function OrganizationDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user, role, supabase]);
+  }, [user, role, supabase]);
 
-  // 🔄 Only ONE loading gate
-  if (authLoading || loading) {
+  // 🔄 Single loading gate
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-blue-600 font-medium">Loading session…</p>
+        <p className="text-blue-600 font-medium">Loading organization…</p>
       </div>
     );
   }
 
+  // ❌ Still no org → real error
   if (!org) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <p className="mb-4">Unable to load organization</p>
+      <div className="min-h-screen flex flex-col items-center justify-center text-center">
+        <p className="mb-2 text-red-600 font-semibold">
+          Organization profile not found
+        </p>
+        <p className="text-sm text-gray-500 mb-4">
+          This usually means the profile row was not created or is blocked by RLS
+        </p>
         <button
           onClick={hardLogout}
           className="bg-red-600 text-white px-4 py-2 rounded"
@@ -132,7 +133,10 @@ export default function OrganizationDashboard() {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between mb-6">
         <h1 className="text-2xl font-bold">Welcome, {org.name}</h1>
-        <button onClick={hardLogout} className="flex items-center gap-2 text-red-600">
+        <button
+          onClick={hardLogout}
+          className="flex items-center gap-2 text-red-600"
+        >
           <LogOut size={18} /> Logout
         </button>
       </div>
