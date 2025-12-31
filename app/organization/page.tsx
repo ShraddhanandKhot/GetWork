@@ -28,6 +28,11 @@ export default function OrganizationDashboard() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const test = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    console.log("SESSION CHECK:", data.session, error);
+  };
+  test();
 
   useEffect(() => {
     if (!user) return;
