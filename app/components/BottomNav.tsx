@@ -7,7 +7,8 @@ import { Home, Briefcase, Users, User, LogIn } from "lucide-react";
 
 export default function BottomNav() {
     const pathname = usePathname();
-    const { user, role, isLoggedIn } = useAuth();
+    const { user, role } = useAuth();
+    const isLoggedIn = !!user;
 
     const isActive = (path: string) => pathname === path;
 

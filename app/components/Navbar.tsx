@@ -11,7 +11,8 @@ import Applications from "./Applications";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { isLoggedIn, role, logout } = useAuth();
+  const { user, role, logout } = useAuth();
+  const isLoggedIn = !!user;
 
   return (
     <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center relative z-50">

@@ -62,12 +62,19 @@ export default function OrganizationPage() {
         }
 
         // 6️⃣ Create profile on first login
+        // 🛡️ RE-FETCH USER TO ENSURE SESSION IS READY
+        const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !freshUser) {
+          throw new Error("Session invalid during creation");
+        }
+
         const { error: insertError } = await supabase
           .from("organizations")
           .insert({
-            user_id: user.id,      // 🔑 REQUIRED FOR RLS
+            user_id: freshUser.id,      // 🔑 REQUIRED FOR RLS
             name: "My Organization",
-            email: user.email,
+            email: freshUser.email,
             phone: "",
             location: "",
           });
