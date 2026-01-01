@@ -193,7 +193,7 @@ export default function ReferralPage() {
   };
 
   /* -------------------- LOADING -------------------- */
-  if (authLoading || loading) {
+  if ( loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-blue-600 font-medium">Loading session…</p>
