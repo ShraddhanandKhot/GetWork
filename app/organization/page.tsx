@@ -18,6 +18,11 @@ export default function OrganizationPage() {
   const { user, role, isLoading } = useAuth();
   const supabase = createClient();
 
+  // 🧪 FINAL PROOF CHECK
+  supabase.auth.getSession().then(({ data }) => {
+    console.log("SESSION FROM CLIENT:", data.session);
+  });
+
   const [org, setOrg] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
