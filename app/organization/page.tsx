@@ -22,22 +22,30 @@ interface Job {
 }
 
 export default function OrganizationDashboard() {
-  const { user, role } = useAuth(); // ❌ removed authLoading
+  const { user, role } = useAuth();
   const supabase = createClient();
 
   const [org, setOrg] = useState<Organization | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const test = async () => {
-    const { data, error } = await supabase.auth.getSession();
-    console.log("SESSION CHECK:", data.session, error);
-  };
-  test();
 
   useEffect(() => {
-    if (!user) return;
+    // 🔍 DEBUG SESSION (ONCE)
+    const debugSession = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      console.log("SESSION USER:", data.user);
+      console.log("SESSION ERROR:", error);
+    };
 
-    // ⛔ Wrong role guard
+    debugSession();
+
+    // ⛔ Not logged in
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    // ⛔ Wrong role
     if (role && role !== "organization") {
       window.location.href = `/${role}`;
       return;
@@ -47,28 +55,27 @@ export default function OrganizationDashboard() {
 
     const load = async () => {
       try {
-        // ✅ Fetch org safely
+        // ✅ Fetch organization
         const { data, error } = await supabase
           .from("organizations")
           .select("*")
           .eq("id", user.id)
           .maybeSingle();
 
-        console.log("ORG FETCH:", { data, error, userId: user.id });
+        console.log("ORG FETCH:", data, error);
 
         let orgData = data;
 
-        // ✅ Self-heal if missing
+        // 🧠 Self-heal if missing
         if (!orgData && user.user_metadata?.role === "organization") {
           const { error: insertError } = await supabase
             .from("organizations")
             .insert({
-              id: user.id,
+              id: user.id, // MUST match auth.uid()
               name: user.user_metadata.full_name || "Organization",
               email: user.email,
               phone: user.user_metadata.phone || "",
               location: user.user_metadata.location || "",
-              verified: false,
             });
 
           console.log("ORG INSERT ERROR:", insertError);
@@ -92,7 +99,7 @@ export default function OrganizationDashboard() {
 
         if (!cancelled) setJobs(jobsData || []);
       } catch (err) {
-        console.error("Organization dashboard fatal error:", err);
+        console.error("Organization dashboard error:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -103,9 +110,8 @@ export default function OrganizationDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [user, role, supabase]);
+  }, [user, role]);
 
-  // 🔄 Single loading gate
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -114,15 +120,11 @@ export default function OrganizationDashboard() {
     );
   }
 
-  // ❌ Still no org → real error
   if (!org) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center">
         <p className="mb-2 text-red-600 font-semibold">
           Organization profile not found
-        </p>
-        <p className="text-sm text-gray-500 mb-4">
-          This usually means the profile row was not created or is blocked by RLS
         </p>
         <button
           onClick={hardLogout}
@@ -154,7 +156,6 @@ export default function OrganizationDashboard() {
 
       <div className="bg-white p-4 rounded">
         <h2 className="font-bold mb-3">Your Jobs</h2>
-
         {jobs.length === 0 ? (
           <p>No jobs posted yet.</p>
         ) : (
