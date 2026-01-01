@@ -61,35 +61,32 @@ export default function OrganizationPage() {
           return;
         }
 
-        // 6️⃣ Create profile on first login
-        // 🛡️ RE-FETCH USER TO ENSURE SESSION IS READY
-        const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser();
+        // 6️⃣ Create profile on first login (FINAL FIX)
 
-        if (userError || !freshUser) {
-          throw new Error("Session invalid during creation");
+        // MUST verify session (not user)
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+
+        if (sessionError || !sessionData.session) {
+          throw new Error("Session not established yet. Refresh and try again.");
         }
 
-        // 🛡️ DOUBLE-CHECK AUTHENTICATED ROLE
-        if (freshUser.role !== 'authenticated') {
-          throw new Error("User role is not authenticated");
-        }
+        const sessionUser = sessionData.session.user;
 
-        console.log("Creating organization profile for:", freshUser.id);
+        console.log("SESSION UID USED FOR INSERT:", sessionUser.id);
 
         const { error: insertError } = await supabase
           .from("organizations")
           .insert({
-            user_id: freshUser.id,      // 🔑 REQUIRED FOR RLS
+            user_id: sessionUser.id,   // ✅ THIS MATCHES auth.uid()
             name: "My Organization",
-            email: freshUser.email,
+            email: sessionUser.email,
             phone: "",
             location: "",
           });
 
         if (insertError) {
-          console.error("FULL INSERT ERROR:", insertError);
-          // Alerting the details might help the user see it immediately
-          alert(`Insert Failed: ${insertError.message} - ${insertError.details || ''} - ${insertError.hint || ''}`);
+          console.error("INSERT BLOCKED BY RLS:", insertError);
           throw insertError;
         }
 
