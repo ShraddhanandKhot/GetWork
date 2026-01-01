@@ -58,8 +58,16 @@ export default function WorkerDashboard() {
         if (!profileData && user.user_metadata?.role === "worker") {
           const meta = user.user_metadata || {};
 
+          // 🛡️ RE-FETCH USER TO ENSURE SESSION IS READY
+          const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser();
+
+          if (userError || !freshUser) {
+            console.error("Session invalid during worker creation");
+            return;
+          }
+
           const { error: insertError } = await supabase.from("workers").insert({
-            id: user.id,
+            id: freshUser.id,
             name: meta.full_name || user.email?.split("@")[0] || "Worker",
             email: user.email,
             phone: meta.phone || "",

@@ -69,6 +69,13 @@ export default function OrganizationPage() {
           throw new Error("Session invalid during creation");
         }
 
+        // 🛡️ DOUBLE-CHECK AUTHENTICATED ROLE
+        if (freshUser.role !== 'authenticated') {
+          throw new Error("User role is not authenticated");
+        }
+
+        console.log("Creating organization profile for:", freshUser.id);
+
         const { error: insertError } = await supabase
           .from("organizations")
           .insert({
@@ -80,6 +87,9 @@ export default function OrganizationPage() {
           });
 
         if (insertError) {
+          console.error("FULL INSERT ERROR:", insertError);
+          // Alerting the details might help the user see it immediately
+          alert(`Insert Failed: ${insertError.message} - ${insertError.details || ''} - ${insertError.hint || ''}`);
           throw insertError;
         }
 
