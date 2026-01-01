@@ -7,9 +7,7 @@ import { Home, Briefcase, Users, User, LogIn } from "lucide-react";
 
 export default function BottomNav() {
     const pathname = usePathname();
-    const { user, role } = useAuth();
-
-    const isLoggedIn = !!user;
+    const { user, role, isLoggedIn } = useAuth();
 
     const isActive = (path: string) => pathname === path;
 
@@ -56,10 +54,10 @@ export default function BottomNav() {
                                 : "/referral"
                     }
                     className={`flex flex-col items-center gap-1 ${isActive("/organization") ||
-                            isActive("/worker") ||
-                            isActive("/referral")
-                            ? "text-blue-600"
-                            : "text-gray-500"
+                        isActive("/worker") ||
+                        isActive("/referral")
+                        ? "text-blue-600"
+                        : "text-gray-500"
                         }`}
                 >
                     <User size={24} />
