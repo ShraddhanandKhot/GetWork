@@ -59,7 +59,7 @@ export default function OrganizationDashboard() {
         const { data, error } = await supabase
           .from("organizations")
           .select("*")
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .maybeSingle();
 
         console.log("ORG FETCH:", data, error);
@@ -83,7 +83,7 @@ export default function OrganizationDashboard() {
           const retry = await supabase
             .from("organizations")
             .select("*")
-            .eq("id", user.id)
+            .eq("user_id", user.id)
             .maybeSingle();
 
           orgData = retry.data;
