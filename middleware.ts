@@ -1,29 +1,35 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-export async function middleware(req: NextRequest) {
-    let res = NextResponse.next();
+export async function middleware(request: NextRequest) {
+    let response = NextResponse.next({
+        request: {
+            headers: request.headers,
+        },
+    });
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
             cookies: {
-                get: (name) => req.cookies.get(name)?.value,
-                set: (name, value, options) => {
-                    res.cookies.set({ name, value, ...options });
+                getAll() {
+                    return request.cookies.getAll();
                 },
-                remove: (name, options) => {
-                    res.cookies.set({ name, value: "", ...options });
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        request.cookies.set(name, value);
+                        response.cookies.set(name, value, options);
+                    });
                 },
             },
         }
     );
 
-    // 🔑 THIS LINE IS THE MAGIC
-    await supabase.auth.getSession();
+    // This refreshes the session if needed
+    await supabase.auth.getUser();
 
-    return res;
+    return response;
 }
 
 export const config = {
