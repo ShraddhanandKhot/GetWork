@@ -76,7 +76,7 @@ export default function ReferralPage() {
           const { data } = await supabase
             .from("referral_partners")
             .select("name")
-            .eq("id", user.id)
+            .eq("user_id", user.id)
             .limit(1);
 
           if (!cancelled && data?.[0]) setUserName(data[0].name);
@@ -84,7 +84,7 @@ export default function ReferralPage() {
           const { data } = await supabase
             .from("workers")
             .select("name")
-            .eq("id", user.id)
+            .eq("user_id", user.id)
             .limit(1);
 
           if (!cancelled && data?.[0]) setUserName(data[0].name);
@@ -193,7 +193,7 @@ export default function ReferralPage() {
   };
 
   /* -------------------- LOADING -------------------- */
-  if ( loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-blue-600 font-medium">Loading session…</p>

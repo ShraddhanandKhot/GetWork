@@ -46,73 +46,46 @@ export default function WorkerDashboard() {
 
     const fetchProfile = async () => {
       try {
-        let { data } = await supabase
+        // 1. Fetch Worker with user_id
+        let { data, error } = await supabase
           .from("workers")
           .select("*")
-          .eq("id", user.id)
-          .limit(1);
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-        let profileData = data?.[0] ?? null;
+        if (error) throw error;
 
-        // 🧠 Self-heal if profile missing
-        if (!profileData && user.user_metadata?.role === "worker") {
-          const meta = user.user_metadata || {};
+        // 2. If no profile, create one
+        if (!data) {
+          const { error: insertError } = await supabase
+            .from("workers")
+            .insert({
+              user_id: user.id,
+              name: user.user_metadata?.full_name || "Worker",
+              email: user.email,
+              phone: user.user_metadata?.phone || "",
+              age: null,
+              skills: [],
+              location: "",
+              verified: false,
+            });
 
-          // 🛡️ RE-FETCH USER TO ENSURE SESSION IS READY
-          const { data: { user: freshUser }, error: userError } = await supabase.auth.getUser();
+          if (insertError) throw insertError;
 
-          if (userError || !freshUser) {
-            console.error("Session invalid during worker creation");
-            return;
-          }
+          // 3. Retry fetch
+          const { data: newData, error: retryError } = await supabase
+            .from("workers")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
 
-          const { error: insertError } = await supabase.from("workers").insert({
-            id: freshUser.id,
-            name: meta.full_name || user.email?.split("@")[0] || "Worker",
-            email: user.email,
-            phone: meta.phone || "",
-            age: meta.age ? Number(meta.age) : null,
-            skills: typeof meta.skills === "string"
-              ? meta.skills.split(",").map((s: string) => s.trim())
-              : meta.skills || [],
-            location: meta.location || "",
-            verified: false,
-          });
-
-          if (!insertError) {
-            const retry = await supabase
-              .from("workers")
-              .select("*")
-              .eq("id", user.id)
-              .limit(1);
-
-            profileData = retry.data?.[0] ?? null;
-          }
+          if (retryError) throw retryError;
+          data = newData;
         }
 
-        // ✅ Normal DB profile
-        if (profileData && !cancelled) {
-          setProfile(profileData as WorkerProfile);
+        if (data && !cancelled) {
+          setProfile(data as WorkerProfile);
           setIsFallback(false);
-          return;
-        }
-
-        // 🧩 Metadata fallback
-        const meta = user.user_metadata || {};
-        const fallback: WorkerProfile = {
-          id: user.id,
-          name: meta.full_name || user.email?.split("@")[0] || "Worker",
-          age: Number(meta.age) || 0,
-          skills: typeof meta.skills === "string"
-            ? meta.skills.split(",").map((s: string) => s.trim())
-            : meta.skills || [],
-          location: meta.location || "",
-          phone: meta.phone || "",
-        };
-
-        if (!cancelled) {
-          setProfile(fallback);
-          setIsFallback(true);
         }
       } catch (err: any) {
         console.error("Worker Dashboard Error:", err);

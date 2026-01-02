@@ -41,6 +41,7 @@ export default function LoginPage() {
       }
 
       // Redirect based on role
+      const role = selectedRole;
       // using window.location.href ensures a hard refresh
       if (role === 'worker') {
         window.location.href = "/worker";
