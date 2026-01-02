@@ -47,72 +47,47 @@ export default function OrganizationPage() {
 
     let cancelled = false;
 
-    const loadOrganization = async () => {
-      try {
-        // 4️⃣ Fetch organization by user_id (RLS SAFE)
-        const { data, error: fetchError } = await supabase
-          .from("organizations")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle();
+    try {
+      // 1. Fetch Organization
+      let { data, error } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-        if (fetchError) {
-          throw fetchError;
-        }
+      if (error) throw error;
 
-        // 5️⃣ If exists → done
-        if (data) {
-          if (!cancelled) setOrg(data);
-          return;
-        }
-
-        // 6️⃣ Create profile on first login (FINAL FIX)
-
-        // MUST verify session (not user)
-        const { data: sessionData, error: sessionError } =
-          await supabase.auth.getSession();
-
-        if (sessionError || !sessionData.session) {
-          throw new Error("Session not established yet. Refresh and try again.");
-        }
-
-        const sessionUser = sessionData.session.user;
-
-        console.log("SESSION UID USED FOR INSERT:", sessionUser.id);
-
+      // 2. If no organization, create one
+      if (!data) {
         const { error: insertError } = await supabase
           .from("organizations")
           .insert({
-            user_id: sessionUser.id,   // ✅ THIS MATCHES auth.uid()
+            user_id: user.id,
             name: "My Organization",
-            email: sessionUser.email,
-            phone: "",
-            location: "",
+            email: user.email,
           });
 
-        if (insertError) {
-          console.error("INSERT BLOCKED BY RLS:", insertError);
-          throw insertError;
-        }
+        if (insertError) throw insertError;
 
-        // 7️⃣ Re-fetch after insert
-        const { data: retryData, error: retryError } = await supabase
+        // 3. Retry fetch after insert
+        const { data: newData, error: retryError } = await supabase
           .from("organizations")
           .select("*")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (retryError) {
-          throw retryError;
-        }
-
-        if (!cancelled) setOrg(retryData);
-      } catch (err: any) {
-        if (!cancelled) setError(err.message);
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (retryError) throw retryError;
+        data = newData;
       }
-    };
+
+      if (!cancelled && data) {
+        setOrg(data);
+      }
+    } catch (err: any) {
+      if (!cancelled) setError(err.message);
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
 
     loadOrganization();
 
