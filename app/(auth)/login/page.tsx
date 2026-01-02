@@ -1,63 +1,45 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { hardLogout } from "@/utils/auth-helpers";
 import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState<"worker" | "organization" | "referral">("worker");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+
   const supabase = createClient();
+  const router = useRouter();
 
   const handleLogin = async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
 
-      if (error) {
-        alert(error.message);
-        setLoading(false);
-        return;
-      }
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      const user = data.user;
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      // 📧 EMAIL VERIFICATION ENFORCEMENT
-      if (!user.email_confirmed_at) {
-        alert("Please verify your email before logging in.");
-        await hardLogout();
-        return;
-      }
-
-      // Redirect based on role
-      const role = selectedRole;
-      // using window.location.href ensures a hard refresh
-      if (role === 'worker') {
-        window.location.href = "/worker";
-      } else if (role === 'organization') {
-        window.location.href = "/organization";
-      } else if (role === 'referral') {
-        window.location.href = "/referral";
-      } else {
-        window.location.href = "/";
-      }
-
-    } catch (err) {
-      alert("Something went wrong");
-      console.error(err);
+    if (error) {
+      alert(error.message);
       setLoading(false);
+      return;
     }
+
+    // ✅ WAIT UNTIL SESSION EXISTS
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log("SESSION AFTER LOGIN:", sessionData.session);
+
+    if (!sessionData.session) {
+      alert("Session not ready. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    // ✅ DO NOT DECIDE ROLE HERE
+    // Let AuthContext + profile pages handle it
+    router.replace("/");
   };
 
   return (
@@ -67,45 +49,10 @@ export default function LoginPage() {
           Login to GetWork
         </h2>
 
-        <p className="text-gray-500 text-sm text-center mb-4">
-          Sign in with your email and password
-        </p>
-
-        {/* Role Selection */}
-        <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
-          <button
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "worker"
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-            onClick={() => setSelectedRole("worker")}
-          >
-            Worker
-          </button>
-          <button
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "organization"
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-            onClick={() => setSelectedRole("organization")}
-          >
-            Organization
-          </button>
-          <button
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${selectedRole === "referral"
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
-            onClick={() => setSelectedRole("referral")}
-          >
-            Referral
-          </button>
-        </div>
-
         <input
           type="email"
           placeholder="Email Address"
-          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
+          className="w-full p-3 border rounded-lg mb-4"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -113,31 +60,25 @@ export default function LoginPage() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-3 border rounded-lg mb-4 placeholder-gray-600 text-gray-900"
+          className="w-full p-3 border rounded-lg mb-4"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         <button
-          className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="w-full py-3 bg-blue-600 text-white rounded-lg"
           onClick={handleLogin}
           disabled={loading}
         >
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        <p className="text-center mt-4 text-black">
+        <p className="text-center mt-4">
           Don’t have an account?{" "}
           <Link href="/register" className="text-blue-600 font-semibold">
             Register
           </Link>
         </p>
-        <div className="text-center mt-2">
-          <Link href="/forgot-password" className="text-blue-600 text-sm">
-            Forgot Password?
-          </Link>
-        </div>
-
       </div>
     </div>
   );
