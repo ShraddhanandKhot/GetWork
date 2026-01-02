@@ -47,47 +47,49 @@ export default function OrganizationPage() {
 
     let cancelled = false;
 
-    try {
-      // 1. Fetch Organization
-      let { data, error } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      // 2. If no organization, create one
-      if (!data) {
-        const { error: insertError } = await supabase
-          .from("organizations")
-          .insert({
-            user_id: user.id,
-            name: "My Organization",
-            email: user.email,
-          });
-
-        if (insertError) throw insertError;
-
-        // 3. Retry fetch after insert
-        const { data: newData, error: retryError } = await supabase
+    const loadOrganization = async () => {
+      try {
+        // 1. Fetch Organization
+        let { data, error } = await supabase
           .from("organizations")
           .select("*")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (retryError) throw retryError;
-        data = newData;
-      }
+        if (error) throw error;
 
-      if (!cancelled && data) {
-        setOrg(data);
+        // 2. If no organization, create one
+        if (!data) {
+          const { error: insertError } = await supabase
+            .from("organizations")
+            .insert({
+              user_id: user.id,
+              name: "My Organization",
+              email: user.email,
+            });
+
+          if (insertError) throw insertError;
+
+          // 3. Retry fetch after insert
+          const { data: newData, error: retryError } = await supabase
+            .from("organizations")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (retryError) throw retryError;
+          data = newData;
+        }
+
+        if (!cancelled && data) {
+          setOrg(data);
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err: any) {
-      if (!cancelled) setError(err.message);
-    } finally {
-      if (!cancelled) setLoading(false);
-    }
+    };
 
     loadOrganization();
 
