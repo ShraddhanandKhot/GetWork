@@ -63,18 +63,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const init = async () => {
-            const { data } = await supabase.auth.getUser();
-            const sessionUser = data.user ?? null;
+            try {
+                const { data } = await supabase.auth.getUser();
+                const sessionUser = data.user ?? null;
 
-            setUser(sessionUser);
+                setUser(sessionUser);
 
-            if (sessionUser) {
-                await resolveRole(sessionUser.id);
-            } else {
-                setRole(null);
+                if (sessionUser) {
+                    await resolveRole(sessionUser.id);
+                } else {
+                    setRole(null);
+                }
+            } catch (error) {
+                console.error("Auth initialization error:", error);
+            } finally {
+                setIsLoading(false);
             }
-
-            setIsLoading(false);
         };
 
         init();

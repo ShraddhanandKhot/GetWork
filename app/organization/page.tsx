@@ -39,7 +39,7 @@ export default function OrganizationPage() {
     }
 
     // 3️⃣ Must be organization
-    if (role !== "organization") {
+    if (role && role !== "organization") {
       setError("Access denied (not an organization)");
       setLoading(false);
       return;
@@ -79,6 +79,10 @@ export default function OrganizationPage() {
 
           if (retryError) throw retryError;
           data = newData;
+
+          // 🔄 Reload to sync AuthContext with new role
+          window.location.reload();
+          return;
         }
 
         if (!cancelled && data) {

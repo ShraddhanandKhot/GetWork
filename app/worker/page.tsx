@@ -81,6 +81,10 @@ export default function WorkerDashboard() {
 
           if (retryError) throw retryError;
           data = newData;
+
+          // 🔄 Reload to sync AuthContext with new role
+          window.location.reload();
+          return;
         }
 
         if (data && !cancelled) {
