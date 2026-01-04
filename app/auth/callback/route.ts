@@ -39,6 +39,12 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/login`);
     }
 
+    // 🚀 Check for custom "next" param (e.g. /update-password)
+    const next = searchParams.get("next");
+    if (next) {
+        return NextResponse.redirect(`${origin}${next}`);
+    }
+
     // 🔍 Fetch authenticated user
     const {
         data: { user },
