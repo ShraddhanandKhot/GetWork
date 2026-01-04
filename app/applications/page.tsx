@@ -120,7 +120,7 @@ export default function ApplicationsPage() {
           jobs (
             id,
             title,
-            organizations (
+            org_id (
               name
             )
           )
@@ -134,9 +134,9 @@ export default function ApplicationsPage() {
                     created_at: app.created_at,
                     status: app.status,
                     job: {
-                        id: app.jobs[0].id,
-                        title: app.jobs[0].title,
-                        org_name: app.jobs[0].organizations?.[0]?.name,
+                        id: app.jobs.id,
+                        title: app.jobs.title,
+                        org_name: app.jobs.org_id?.name,
                     },
                 }));
 
