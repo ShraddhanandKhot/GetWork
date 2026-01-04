@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
@@ -19,7 +19,7 @@ interface Job {
   salary_range: string;
   location: string;
   category: string;
-  org: Organization; // ✅ normalized
+  org: Organization;
 }
 
 /* ---------- PAGE ---------- */
@@ -27,9 +27,9 @@ interface Job {
 export default function JobDetails({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = use(params);
+  const { id } = params; // ✅ FIXED
   const [job, setJob] = useState<Job | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const router = useRouter();
@@ -38,6 +38,8 @@ export default function JobDetails({
   /* ---------- FETCH ---------- */
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchData = async () => {
       const { data, error } = await supabase
         .from("jobs")
@@ -62,7 +64,6 @@ export default function JobDetails({
         return;
       }
 
-      // ✅ NORMALIZE org_id ARRAY → OBJECT
       const org = data.org_id?.[0];
       if (!org) {
         console.error("Organization missing for job");
@@ -79,7 +80,6 @@ export default function JobDetails({
         org,
       });
 
-      // Check if already applied
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: application } = await supabase
@@ -111,7 +111,6 @@ export default function JobDetails({
       return;
     }
 
-    // 1️⃣ Insert application
     const { error } = await supabase.from("job_applications").insert({
       job_id: job.id,
       worker_id: user.id,
@@ -127,26 +126,25 @@ export default function JobDetails({
       return;
     }
 
-    // 2️⃣ Notify WORKER
-    await supabase.from("notifications").insert({
-      recipient_id: user.id,
-      recipient_role: "worker",
-      message: `You successfully applied for "${job.title}"`,
-      type: "application",
-      related_job_id: job.id,
-      related_user_id: user.id,
-    });
-
-    // 3️⃣ Notify ORGANIZATION
-    await supabase.from("notifications").insert({
-      recipient_id: job.org.user_id,
-      recipient_role: "organization",
-      message: `${user.user_metadata?.full_name || "A worker"
-        } applied for "${job.title}"`,
-      type: "application",
-      related_job_id: job.id,
-      related_user_id: user.id,
-    });
+    await supabase.from("notifications").insert([
+      {
+        recipient_id: user.id,
+        recipient_role: "worker",
+        message: `You successfully applied for "${job.title}"`,
+        type: "application",
+        related_job_id: job.id,
+        related_user_id: user.id,
+      },
+      {
+        recipient_id: job.org.user_id,
+        recipient_role: "organization",
+        message: `${user.user_metadata?.full_name || "A worker"
+          } applied for "${job.title}"`,
+        type: "application",
+        related_job_id: job.id,
+        related_user_id: user.id,
+      },
+    ]);
 
     alert("Applied successfully!");
     setHasApplied(true);
@@ -154,7 +152,13 @@ export default function JobDetails({
 
   /* ---------- UI ---------- */
 
-  if (!job) return <p className="p-6">Loading...</p>;
+  if (!job) {
+    return (
+      <div className="p-10 text-center text-gray-500">
+        Loading job details…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -186,7 +190,10 @@ export default function JobDetails({
           </a>
 
           {hasApplied ? (
-            <button disabled className="px-6 py-3 bg-gray-400 text-white rounded-lg">
+            <button
+              disabled
+              className="px-6 py-3 bg-gray-400 text-white rounded-lg"
+            >
               Applied
             </button>
           ) : (
