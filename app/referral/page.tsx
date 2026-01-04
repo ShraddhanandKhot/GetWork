@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { hardLogout } from "@/utils/auth-helpers";
-import ReferralModal from "@/components/referral/ReferralModal";
+import ReferralModal from "@/app/components/referral/ReferralModal";
 
 type Stats = {
   total: number;
