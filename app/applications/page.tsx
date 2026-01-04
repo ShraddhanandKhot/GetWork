@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, X, Calendar, Bell } from "lucide-react";
+import { Calendar, Bell, Check, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { createClient } from "@/utils/supabase/client";
 
@@ -43,9 +43,48 @@ export default function ApplicationsPage() {
         if (!user) return;
         setLoading(true);
 
+        /* ================= WORKER ================= */
+        if (role === "worker") {
+            const { data, error } = await supabase
+                .from("job_applications")
+                .select(`
+          id,
+          created_at,
+          status,
+          job:jobs (
+            id,
+            title,
+            org_id (
+              name
+            )
+          )
+        `)
+                .eq("worker_id", user.id)
+                .order("created_at", { ascending: false });
+
+            if (error) {
+                console.error("Worker applications error:", error);
+                setLoading(false);
+                return;
+            }
+
+            const normalized: Application[] = data.map(app => ({
+                id: app.id,
+                created_at: app.created_at,
+                status: app.status,
+                job: {
+                    id: app.job.id,
+                    title: app.job.title,
+                    org_name: app.job.org_id?.name,
+                },
+            }));
+
+            setApplications(normalized);
+        }
+
         /* ================= ORGANIZATION ================= */
         if (role === "organization") {
-            // 1️⃣ Get organization id
+            // 1️⃣ Get org id
             const { data: org } = await supabase
                 .from("organizations")
                 .select("id")
@@ -58,31 +97,19 @@ export default function ApplicationsPage() {
                 return;
             }
 
-            // 2️⃣ Get jobs posted by this org
-            const { data: jobs } = await supabase
-                .from("jobs")
-                .select("id")
-                .eq("org_id", org.id);
-
-            const jobIds = jobs?.map(j => j.id) || [];
-            if (jobIds.length === 0) {
-                setApplications([]);
-                setLoading(false);
-                return;
-            }
-
-            // 3️⃣ Get applications for those jobs
+            // 2️⃣ Fetch applications
             const { data, error } = await supabase
                 .from("job_applications")
                 .select(`
           id,
           created_at,
           status,
-          jobs (
+          job:jobs (
             id,
-            title
+            title,
+            org_id
           ),
-          workers (
+          worker:workers (
             id,
             name,
             email,
@@ -90,63 +117,28 @@ export default function ApplicationsPage() {
             skills
           )
         `)
-                .in("job_id", jobIds)
                 .order("created_at", { ascending: false });
 
-            if (!error && data) {
-                const normalized: Application[] = data.map(app => ({
+            if (error) {
+                console.error("Org applications error:", error);
+                setLoading(false);
+                return;
+            }
+
+            const normalized: Application[] = data
+                .filter(app => app.job.org_id === org.id)
+                .map(app => ({
                     id: app.id,
                     created_at: app.created_at,
                     status: app.status,
                     job: {
-                        id: app.jobs[0].id,
-                        title: app.jobs[0].title,
+                        id: app.job.id,
+                        title: app.job.title,
                     },
-                    worker: app.workers[0],
+                    worker: app.worker,
                 }));
 
-                setApplications(normalized);
-            }
-        }
-
-        /* ================= WORKER ================= */
-        else {
-            const { data, error } = await supabase
-                .from("job_applications")
-                .select(`
-          id,
-          created_at,
-          status,
-          jobs (
-            id,
-            title,
-            org_id (
-              name
-            )
-          )
-        `)
-                .eq("worker_id", user.id)
-                .order("created_at", { ascending: false });
-
-            if (!error && data) {
-                const normalized: Application[] = data.map((app: any) => {
-                    const job = Array.isArray(app.jobs) ? app.jobs[0] : app.jobs;
-                    const org = Array.isArray(job.org_id) ? job.org_id[0] : job.org_id;
-
-                    return {
-                        id: app.id,
-                        created_at: app.created_at,
-                        status: app.status,
-                        job: {
-                            id: job.id,
-                            title: job.title,
-                            org_name: org?.name,
-                        },
-                    };
-                });
-
-                setApplications(normalized);
-            }
+            setApplications(normalized);
         }
 
         setLoading(false);
@@ -177,12 +169,9 @@ export default function ApplicationsPage() {
                     ? `Your application for "${jobTitle}" was accepted 🎉`
                     : `Your application for "${jobTitle}" was rejected`,
             type: "application",
-            action_status: status,
         });
 
-        setApplications(prev =>
-            prev.map(a => (a.id === appId ? { ...a, status } : a))
-        );
+        fetchApplications();
     };
 
     /* ---------- UI ---------- */
@@ -224,53 +213,49 @@ export default function ApplicationsPage() {
                                     </span>
                                 </div>
 
-                                {/* ORGANIZATION VIEW */}
                                 {role === "organization" && app.worker && (
                                     <div className="mt-4 bg-gray-50 p-4 rounded-lg">
                                         <p className="font-bold">{app.worker.name}</p>
                                         <p className="text-sm">{app.worker.phone}</p>
                                         <p className="text-sm">{app.worker.email}</p>
 
-                                        <div className="mt-4">
-                                            {app.status === "pending" ? (
-                                                <div className="flex gap-4">
-                                                    <button
-                                                        onClick={() =>
-                                                            handleAction(
-                                                                app.id,
-                                                                "accepted",
-                                                                app.worker!.id,
-                                                                app.job.title
-                                                            )
-                                                        }
-                                                        className="px-5 py-2 bg-green-600 text-white rounded-lg"
-                                                    >
-                                                        <Check size={16} /> Accept
-                                                    </button>
+                                        {app.status === "pending" ? (
+                                            <div className="flex gap-4 mt-4">
+                                                <button
+                                                    onClick={() =>
+                                                        handleAction(
+                                                            app.id,
+                                                            "accepted",
+                                                            app.worker!.id,
+                                                            app.job.title
+                                                        )
+                                                    }
+                                                    className="px-5 py-2 bg-green-600 text-white rounded-lg"
+                                                >
+                                                    <Check size={16} /> Accept
+                                                </button>
 
-                                                    <button
-                                                        onClick={() =>
-                                                            handleAction(
-                                                                app.id,
-                                                                "rejected",
-                                                                app.worker!.id,
-                                                                app.job.title
-                                                            )
-                                                        }
-                                                        className="px-5 py-2 bg-red-100 text-red-600 rounded-lg"
-                                                    >
-                                                        <X size={16} /> Reject
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <span className="font-bold">{app.status}</span>
-                                            )}
-                                        </div>
+                                                <button
+                                                    onClick={() =>
+                                                        handleAction(
+                                                            app.id,
+                                                            "rejected",
+                                                            app.worker!.id,
+                                                            app.job.title
+                                                        )
+                                                    }
+                                                    className="px-5 py-2 bg-red-100 text-red-600 rounded-lg"
+                                                >
+                                                    <X size={16} /> Reject
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <p className="mt-4 font-bold">{app.status}</p>
+                                        )}
                                     </div>
                                 )}
 
-                                {/* WORKER VIEW */}
-                                {role !== "organization" && (
+                                {role === "worker" && (
                                     <div className="mt-3">
                                         Status: <b>{app.status}</b>
                                     </div>
