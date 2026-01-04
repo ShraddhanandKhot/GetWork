@@ -9,24 +9,6 @@ import { createClient } from "@/utils/supabase/client";
 
 type Status = "pending" | "accepted" | "rejected";
 
-interface RawApplication {
-    id: string;
-    created_at: string;
-    status: Status;
-    job: {
-        id: string;
-        title: string;
-        org_id: string; // 👈 organization.id
-    }[];
-    worker?: {
-        id: string;
-        name: string;
-        email: string;
-        phone: string;
-        skills: string[];
-    }[];
-}
-
 interface Application {
     id: string;
     created_at: string;
@@ -55,7 +37,7 @@ export default function ApplicationsPage() {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
 
-    /* ---------------- FETCH DATA ---------------- */
+    /* ---------------- FETCH APPLICATIONS ---------------- */
 
     const fetchApplications = async () => {
         if (!user) return;
@@ -63,7 +45,7 @@ export default function ApplicationsPage() {
 
         /* ---------- ORGANIZATION VIEW ---------- */
         if (role === "organization") {
-            // 🔑 STEP 1: Get organization.id using user_id
+            // 1️⃣ get organization.id
             const { data: org } = await supabase
                 .from("organizations")
                 .select("id")
@@ -76,7 +58,7 @@ export default function ApplicationsPage() {
                 return;
             }
 
-            // 🔑 STEP 2: Fetch applications
+            // 2️⃣ fetch all applications
             const { data, error } = await supabase
                 .from("job_applications")
                 .select(`
@@ -99,8 +81,7 @@ export default function ApplicationsPage() {
                 .order("created_at", { ascending: false });
 
             if (!error && data) {
-                const normalized: Application[] = (data as RawApplication[])
-                    // ✅ CORRECT FILTER (org.id, not user.id)
+                const normalized: Application[] = data
                     .filter(app => app.job?.[0]?.org_id === org.id)
                     .map(app => ({
                         id: app.id,
@@ -137,14 +118,15 @@ export default function ApplicationsPage() {
                 .order("created_at", { ascending: false });
 
             if (!error && data) {
-                const normalized: Application[] = (data as any[]).map(app => ({
+                const normalized: Application[] = data.map(app => ({
                     id: app.id,
                     created_at: app.created_at,
                     status: app.status,
                     job: {
                         id: app.job[0].id,
                         title: app.job[0].title,
-                        org_name: app.job[0].org_id?.name,
+                        org_name: app.job[0].org_id?.[0]?.name,
+
                     },
                 }));
 
@@ -177,7 +159,7 @@ export default function ApplicationsPage() {
             return;
         }
 
-        // 🔔 Notify worker
+        // 🔔 notify worker
         await supabase.from("notifications").insert({
             recipient_id: workerId,
             recipient_role: "worker",
