@@ -25,6 +25,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 🔑 Resolve role from DATABASE (single source of truth)
     const resolveRole = async (userId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // 1️⃣ Check worker
         const { data: worker } = await supabase
             .from("workers")
             .select("id")
@@ -36,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        // 2️⃣ Check organization
         const { data: org } = await supabase
             .from("organizations")
             .select("id")
@@ -47,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        // 3️⃣ Check referral
         const { data: ref } = await supabase
             .from("referral_partners")
             .select("id")
@@ -58,8 +64,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        setRole(null);
+        // 🧠 4️⃣ PROFILE DOES NOT EXIST → CREATE IT
+        const meta = user.user_metadata;
+        const roleFromMeta = meta.role;
+
+        if (roleFromMeta === "worker") {
+            await supabase.from("workers").insert({
+                user_id: user.id,
+                name: meta.full_name,
+                phone: meta.phone,
+                age: meta.age,
+                skills: meta.skills,
+                location: meta.location
+            });
+            setRole("worker");
+        }
+
+        if (roleFromMeta === "organization") {
+            await supabase.from("organizations").insert({
+                user_id: user.id,
+                name: meta.full_name,
+                phone: meta.phone,
+                location: meta.location
+            });
+            setRole("organization");
+        }
+
+        if (roleFromMeta === "referral") {
+            await supabase.from("referral_partners").insert({
+                user_id: user.id,
+                name: meta.full_name,
+                phone: meta.phone
+            });
+            setRole("referral");
+        }
     };
+
 
     useEffect(() => {
         const init = async () => {
