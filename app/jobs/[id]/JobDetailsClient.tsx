@@ -113,19 +113,23 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
         const { error: notifError } = await supabase.from("notifications").insert([
             {
                 recipient_id: user.id,
-                recipient_role: "worker",
+                recipient_model: "Worker",
                 message: `You applied for ${job.title}`,
                 created_at: new Date().toISOString(),
                 read: false,
                 type: "application",
+                related_id: job.id,
+                related_user_model: "Organization"
             },
             {
                 recipient_id: job.org_user_id,
-                recipient_role: "organization",
+                recipient_model: "Organization",
                 message: `${user.user_metadata?.full_name || "A worker"} applied for ${job.title}`,
                 created_at: new Date().toISOString(),
                 read: false,
                 type: "application",
+                related_id: job.id,
+                related_user_model: "Worker"
             },
         ]);
 
