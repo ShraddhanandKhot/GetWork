@@ -12,6 +12,14 @@ export default function BottomNav() {
 
     const isActive = (path: string) => pathname === path;
 
+    // Decide dashboard path safely
+    const dashboardPath =
+        role === "organization"
+            ? "/organization"
+            : role === "worker"
+                ? "/worker"
+                : "/"; // fallback when role is null
+
     return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center py-3 pb-5 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
             {/* Home */}
@@ -44,21 +52,15 @@ export default function BottomNav() {
                 <span className="text-[10px] font-medium">Referral</span>
             </Link>
 
-            {/* Dashboard (role-based) */}
-            {isLoggedIn && role && (
+            {/* Dashboard / You */}
+            {isLoggedIn && (
                 <Link
-                    href={
-                        role === "organization"
-                            ? "/organization"
-                            : role === "worker"
-                                ? "/worker"
-                                : "/referral"
-                    }
+                    href={dashboardPath}
                     className={`flex flex-col items-center gap-1 ${isActive("/organization") ||
-                        isActive("/worker") ||
-                        isActive("/referral")
-                        ? "text-blue-600"
-                        : "text-gray-500"
+                            isActive("/worker") ||
+                            isActive("/")
+                            ? "text-blue-600"
+                            : "text-gray-500"
                         }`}
                 >
                     <User size={24} />

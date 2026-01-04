@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
@@ -9,14 +9,26 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const supabase = createClient();
   const router = useRouter();
 
+  // 🔍 CHECK IF USER IS ALREADY LOGGED IN
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        router.replace("/");
+      } else {
+        setCheckingSession(false);
+      }
+    });
+  }, [router, supabase]);
+
   const handleLogin = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -27,20 +39,14 @@ export default function LoginPage() {
       return;
     }
 
-    // ✅ WAIT UNTIL SESSION EXISTS
-    const { data: sessionData } = await supabase.auth.getSession();
-    console.log("SESSION AFTER LOGIN:", sessionData.session);
-
-    if (!sessionData.session) {
-      alert("Session not ready. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    // ✅ DO NOT DECIDE ROLE HERE
-    // Let AuthContext + profile pages handle it
+    // ✅ Redirect to root (router page handles rest)
     router.replace("/");
   };
+
+  // ⏳ Avoid flicker while checking session
+  if (checkingSession) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
