@@ -129,16 +129,21 @@ export default function ApplicationsPage() {
                 .order("created_at", { ascending: false });
 
             if (!error && data) {
-                const normalized: Application[] = data.map(app => ({
-                    id: app.id,
-                    created_at: app.created_at,
-                    status: app.status,
-                    job: {
-                        id: app.jobs.id,
-                        title: app.jobs.title,
-                        org_name: app.jobs.org_id?.name,
-                    },
-                }));
+                const normalized: Application[] = data.map((app: any) => {
+                    const job = Array.isArray(app.jobs) ? app.jobs[0] : app.jobs;
+                    const org = Array.isArray(job.org_id) ? job.org_id[0] : job.org_id;
+
+                    return {
+                        id: app.id,
+                        created_at: app.created_at,
+                        status: app.status,
+                        job: {
+                            id: job.id,
+                            title: job.title,
+                            org_name: org?.name,
+                        },
+                    };
+                });
 
                 setApplications(normalized);
             }
