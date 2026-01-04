@@ -18,27 +18,20 @@ export default function OrganizationPage() {
   const { user, role, isLoading } = useAuth();
   const supabase = createClient();
 
-  // 🧪 FINAL PROOF CHECK
-  supabase.auth.getSession().then(({ data }) => {
-    console.log("SESSION FROM CLIENT:", data.session);
-  });
-
   const [org, setOrg] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1️⃣ Wait for auth to finish
     if (isLoading) return;
 
-    // 2️⃣ Must be logged in
     if (!user) {
       setError("Not authenticated");
       setLoading(false);
       return;
     }
 
-    // 3️⃣ Must be organization
+    // 🚨 Only block if role is known AND wrong
     if (role && role !== "organization") {
       setError("Access denied (not an organization)");
       setLoading(false);
@@ -47,10 +40,10 @@ export default function OrganizationPage() {
 
     let cancelled = false;
 
-    const loadOrganization = async () => {
+    const loadOrCreateOrganization = async () => {
       try {
-        // 1. Fetch Organization
-        let { data, error } = await supabase
+        // 1️⃣ Try fetch
+        const { data: existing, error } = await supabase
           .from("organizations")
           .select("*")
           .eq("user_id", user.id)
@@ -58,35 +51,34 @@ export default function OrganizationPage() {
 
         if (error) throw error;
 
-        // 2. If no organization, create one
-        if (!data) {
+        // 2️⃣ Create if missing
+        if (!existing) {
+          const meta = user.user_metadata || {};
+
           const { error: insertError } = await supabase
             .from("organizations")
             .insert({
               user_id: user.id,
-              name: "My Organization",
+              name: meta.full_name || "New Organization",
               email: user.email,
+              phone: meta.phone || null,
+              location: meta.location || null,
             });
 
           if (insertError) throw insertError;
 
-          // 3. Retry fetch after insert
-          const { data: newData, error: retryError } = await supabase
+          // 3️⃣ Fetch newly created row
+          const { data: created, error: retryError } = await supabase
             .from("organizations")
             .select("*")
             .eq("user_id", user.id)
             .maybeSingle();
 
           if (retryError) throw retryError;
-          data = newData;
 
-          // 🔄 Reload to sync AuthContext with new role
-          window.location.reload();
-          return;
-        }
-
-        if (!cancelled && data) {
-          setOrg(data);
+          if (!cancelled) setOrg(created);
+        } else {
+          if (!cancelled) setOrg(existing);
         }
       } catch (err: any) {
         if (!cancelled) setError(err.message);
@@ -95,14 +87,14 @@ export default function OrganizationPage() {
       }
     };
 
-    loadOrganization();
+    loadOrCreateOrganization();
 
     return () => {
       cancelled = true;
     };
   }, [user, role, isLoading]);
 
-  /* ---------------- UI STATES ---------------- */
+  /* ---------- UI STATES ---------- */
 
   if (isLoading || loading) {
     return <p style={{ padding: 24 }}>Loading organization…</p>;
@@ -118,14 +110,10 @@ export default function OrganizationPage() {
   }
 
   if (!org) {
-    return (
-      <div style={{ padding: 24 }}>
-        <p>Organization profile not found</p>
-      </div>
-    );
+    return <p style={{ padding: 24 }}>Organization not found</p>;
   }
 
-  /* ---------------- DASHBOARD ---------------- */
+  /* ---------- DASHBOARD ---------- */
 
   return (
     <div style={{ padding: 24 }}>

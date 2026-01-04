@@ -23,83 +23,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [role, setRole] = useState<Role>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 🔑 Resolve role from DATABASE (single source of truth)
+    // 🔑 Resolve role (READ ONLY)
     const resolveRole = async (userId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        // 1️⃣ Check worker
+        // Worker
         const { data: worker } = await supabase
             .from("workers")
             .select("id")
             .eq("user_id", userId)
-            .limit(1);
+            .maybeSingle();
 
-        if (worker?.length) {
+        if (worker) {
             setRole("worker");
             return;
         }
 
-        // 2️⃣ Check organization
+        // Organization
         const { data: org } = await supabase
             .from("organizations")
             .select("id")
             .eq("user_id", userId)
-            .limit(1);
+            .maybeSingle();
 
-        if (org?.length) {
+        if (org) {
             setRole("organization");
             return;
         }
 
-        // 3️⃣ Check referral
+        // Referral
         const { data: ref } = await supabase
             .from("referral_partners")
             .select("id")
             .eq("user_id", userId)
-            .limit(1);
+            .maybeSingle();
 
-        if (ref?.length) {
+        if (ref) {
             setRole("referral");
             return;
         }
 
-        // 🧠 4️⃣ PROFILE DOES NOT EXIST → CREATE IT
-        const meta = user.user_metadata;
-        const roleFromMeta = meta.role;
-
-        if (roleFromMeta === "worker") {
-            await supabase.from("workers").insert({
-                user_id: user.id,
-                name: meta.full_name,
-                phone: meta.phone,
-                age: meta.age,
-                skills: meta.skills,
-                location: meta.location
-            });
-            setRole("worker");
-        }
-
-        if (roleFromMeta === "organization") {
-            await supabase.from("organizations").insert({
-                user_id: user.id,
-                name: meta.full_name,
-                phone: meta.phone,
-                location: meta.location
-            });
-            setRole("organization");
-        }
-
-        if (roleFromMeta === "referral") {
-            await supabase.from("referral_partners").insert({
-                user_id: user.id,
-                name: meta.full_name,
-                phone: meta.phone
-            });
-            setRole("referral");
-        }
+        // Profile not created yet
+        setRole(null);
     };
-
 
     useEffect(() => {
         const init = async () => {
@@ -114,8 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 } else {
                     setRole(null);
                 }
-            } catch (error) {
-                console.error("Auth initialization error:", error);
+            } catch (err) {
+                console.error("Auth init error:", err);
             } finally {
                 setIsLoading(false);
             }
@@ -143,10 +107,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         await supabase.auth.signOut();
+        setUser(null);
+        setRole(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, role, isLoading, logout, isLoggedIn: !!user }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                role,
+                isLoading,
+                logout,
+                isLoggedIn: !!user,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
@@ -154,6 +128,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
     const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+    if (!ctx) {
+        throw new Error("useAuth must be used within AuthProvider");
+    }
     return ctx;
 }
