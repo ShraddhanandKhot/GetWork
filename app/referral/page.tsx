@@ -14,7 +14,10 @@ type Stats = {
 };
 
 export default function ReferralPage() {
-  const { user, role, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+
+  const role = user?.user_metadata?.role;
+
   const supabase = createClient();
   const router = useRouter();
 

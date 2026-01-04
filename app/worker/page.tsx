@@ -17,7 +17,10 @@ interface WorkerProfile {
 }
 
 export default function WorkerDashboard() {
-  const { user, role, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+
+  const role = user?.user_metadata?.role;
+
   const supabase = createClient();
 
   const [profile, setProfile] = useState<WorkerProfile | null>(null);

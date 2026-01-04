@@ -15,8 +15,10 @@ interface Organization {
 }
 
 export default function OrganizationPage() {
-  const { user, role, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const supabase = createClient();
+
+  const role = user?.user_metadata?.role;
 
   const [org, setOrg] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);

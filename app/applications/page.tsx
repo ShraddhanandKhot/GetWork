@@ -23,7 +23,9 @@ interface Application {
 }
 
 export default function ApplicationsPage() {
-    const { user, role } = useAuth();
+    const { user } = useAuth();
+    const role = user?.user_metadata?.role;
+
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
@@ -218,8 +220,8 @@ export default function ApplicationsPage() {
                                                 <div className="mt-2">
                                                     Status:
                                                     <span className={`ml-2 font-bold capitalize ${app.status === 'accepted' ? 'text-green-600' :
-                                                            app.status === 'rejected' ? 'text-red-600' :
-                                                                'text-yellow-600'
+                                                        app.status === 'rejected' ? 'text-red-600' :
+                                                            'text-yellow-600'
                                                         }`}>
                                                         {app.status}
                                                     </span>
