@@ -11,7 +11,8 @@ import Applications from "./Applications";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { user, role, logout } = useAuth();
+  const { user, logout } = useAuth();
+  const role = user?.user_metadata?.role;
   const isLoggedIn = !!user;
 
   return (
