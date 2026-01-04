@@ -1,7 +1,7 @@
 import JobDetailsClient from "./JobDetailsClient";
 
-export default function Page({ params }: any) {
-  console.log("ROUTE PARAMS:", params);
-  return <JobDetailsClient jobId={params.id} />;
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <JobDetailsClient jobId={id} />;
 }
 
