@@ -5,7 +5,7 @@ import { Check, X, Calendar, Bell } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { createClient } from "@/utils/supabase/client";
 
-/* ---------------- TYPES ---------------- */
+/* ---------- TYPES ---------- */
 
 type Status = "pending" | "accepted" | "rejected";
 
@@ -27,7 +27,7 @@ interface Application {
     };
 }
 
-/* ---------------- PAGE ---------------- */
+/* ---------- PAGE ---------- */
 
 export default function ApplicationsPage() {
     const { user } = useAuth();
@@ -37,15 +37,14 @@ export default function ApplicationsPage() {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loading, setLoading] = useState(true);
 
-    /* ---------------- FETCH APPLICATIONS ---------------- */
+    /* ---------- FETCH ---------- */
 
     const fetchApplications = async () => {
         if (!user) return;
         setLoading(true);
 
-        /* ---------- ORGANIZATION VIEW ---------- */
+        /* ===== ORGANIZATION VIEW ===== */
         if (role === "organization") {
-            // 1️⃣ get organization.id
             const { data: org } = await supabase
                 .from("organizations")
                 .select("id")
@@ -58,7 +57,6 @@ export default function ApplicationsPage() {
                 return;
             }
 
-            // 2️⃣ fetch all applications
             const { data, error } = await supabase
                 .from("job_applications")
                 .select(`
@@ -98,7 +96,7 @@ export default function ApplicationsPage() {
             }
         }
 
-        /* ---------- WORKER VIEW ---------- */
+        /* ===== WORKER VIEW ===== */
         else {
             const { data, error } = await supabase
                 .from("job_applications")
@@ -109,7 +107,7 @@ export default function ApplicationsPage() {
           job:jobs (
             id,
             title,
-            org_id (
+            organizations (
               name
             )
           )
@@ -125,8 +123,7 @@ export default function ApplicationsPage() {
                     job: {
                         id: app.job[0].id,
                         title: app.job[0].title,
-                        org_name: app.job[0].org_id?.[0]?.name,
-
+                        org_name: app.job[0].organizations?.[0]?.name,
                     },
                 }));
 
@@ -141,7 +138,7 @@ export default function ApplicationsPage() {
         if (user) fetchApplications();
     }, [user, role]);
 
-    /* ---------------- ACCEPT / REJECT ---------------- */
+    /* ---------- ACCEPT / REJECT ---------- */
 
     const handleAction = async (
         appId: string,
@@ -149,17 +146,11 @@ export default function ApplicationsPage() {
         workerId: string,
         jobTitle: string
     ) => {
-        const { error } = await supabase
+        await supabase
             .from("job_applications")
             .update({ status })
             .eq("id", appId);
 
-        if (error) {
-            alert("Failed to update application");
-            return;
-        }
-
-        // 🔔 notify worker
         await supabase.from("notifications").insert({
             recipient_id: workerId,
             recipient_role: "worker",
@@ -176,7 +167,7 @@ export default function ApplicationsPage() {
         );
     };
 
-    /* ---------------- UI ---------------- */
+    /* ---------- UI ---------- */
 
     if (loading) {
         return (
@@ -215,23 +206,12 @@ export default function ApplicationsPage() {
                                     </span>
                                 </div>
 
-                                {/* ORGANIZATION VIEW */}
+                                {/* ORGANIZATION */}
                                 {role === "organization" && app.worker && (
                                     <div className="mt-4 bg-gray-50 p-4 rounded-lg">
                                         <p className="font-bold">{app.worker.name}</p>
                                         <p className="text-sm">{app.worker.phone}</p>
                                         <p className="text-sm">{app.worker.email}</p>
-
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {app.worker.skills?.map((s, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="px-3 py-1 text-sm bg-white border rounded-full"
-                                                >
-                                                    {s}
-                                                </span>
-                                            ))}
-                                        </div>
 
                                         <div className="mt-4">
                                             {app.status === "pending" ? (
@@ -265,33 +245,16 @@ export default function ApplicationsPage() {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <span
-                                                    className={`font-bold ${app.status === "accepted"
-                                                        ? "text-green-600"
-                                                        : "text-red-600"
-                                                        }`}
-                                                >
-                                                    {app.status.toUpperCase()}
-                                                </span>
+                                                <span className="font-bold">{app.status}</span>
                                             )}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* WORKER VIEW */}
+                                {/* WORKER */}
                                 {role !== "organization" && (
                                     <div className="mt-3">
-                                        Status:{" "}
-                                        <span
-                                            className={`font-bold ${app.status === "accepted"
-                                                ? "text-green-600"
-                                                : app.status === "rejected"
-                                                    ? "text-red-600"
-                                                    : "text-yellow-600"
-                                                }`}
-                                        >
-                                            {app.status}
-                                        </span>
+                                        Status: <b>{app.status}</b>
                                     </div>
                                 )}
                             </div>
