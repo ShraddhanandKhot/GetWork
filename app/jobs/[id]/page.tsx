@@ -4,6 +4,14 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
+/* ---------- TYPES ---------- */
+
+interface Organization {
+  id: string;
+  user_id: string;
+  phone: string;
+}
+
 interface Job {
   id: string;
   title: string;
@@ -11,12 +19,10 @@ interface Job {
   salary_range: string;
   location: string;
   category: string;
-  org_id: {
-    id: string;
-    user_id: string;
-    phone: string;
-  }[];
+  org: Organization; // ✅ normalized
 }
+
+/* ---------- PAGE ---------- */
 
 export default function JobDetails({
   params,
@@ -29,11 +35,11 @@ export default function JobDetails({
   const router = useRouter();
   const supabase = createClient();
 
-  /* ---------------- FETCH JOB + CHECK APPLY ---------------- */
+  /* ---------- FETCH ---------- */
+
   useEffect(() => {
-    async function fetchData() {
-      // 1️⃣ Fetch Job
-      const { data: jobData, error } = await supabase
+    const fetchData = async () => {
+      const { data, error } = await supabase
         .from("jobs")
         .select(`
           id,
@@ -51,31 +57,47 @@ export default function JobDetails({
         .eq("id", id)
         .single();
 
-      if (error) {
+      if (error || !data) {
         console.error("Error fetching job:", error);
         return;
       }
 
-      setJob(jobData as Job);
+      // ✅ NORMALIZE org_id ARRAY → OBJECT
+      const org = data.org_id?.[0];
+      if (!org) {
+        console.error("Organization missing for job");
+        return;
+      }
 
-      // 2️⃣ Check if already applied
+      setJob({
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        salary_range: data.salary_range,
+        location: data.location,
+        category: data.category,
+        org,
+      });
+
+      // Check if already applied
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (user) {
+        const { data: application } = await supabase
+          .from("job_applications")
+          .select("id")
+          .eq("job_id", id)
+          .eq("worker_id", user.id)
+          .single();
 
-      const { data: application } = await supabase
-        .from("job_applications")
-        .select("id")
-        .eq("job_id", id)
-        .eq("worker_id", user.id)
-        .maybeSingle();
-
-      if (application) setHasApplied(true);
-    }
+        if (application) setHasApplied(true);
+      }
+    };
 
     fetchData();
   }, [id, supabase]);
 
-  /* ---------------- APPLY ---------------- */
+  /* ---------- APPLY ---------- */
+
   const handleApply = async () => {
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -84,23 +106,21 @@ export default function JobDetails({
       return;
     }
 
-    if (!job || !job.org_id?.[0]) {
+    if (!job) {
       alert("Invalid job data");
       return;
     }
 
-    const org = job.org_id[0];
-
     // 1️⃣ Insert application
     const { error } = await supabase.from("job_applications").insert({
-      job_id: id,
+      job_id: job.id,
       worker_id: user.id,
       status: "pending",
     });
 
     if (error) {
       if (error.code === "23505") {
-        alert("You have already applied for this job.");
+        alert("You have already applied to this job.");
       } else {
         alert("Failed to apply: " + error.message);
       }
@@ -113,29 +133,28 @@ export default function JobDetails({
       recipient_role: "worker",
       message: `You successfully applied for "${job.title}"`,
       type: "application",
-      related_job_id: id,
+      related_job_id: job.id,
       related_user_id: user.id,
     });
 
     // 3️⃣ Notify ORGANIZATION
     await supabase.from("notifications").insert({
-      recipient_id: org.user_id,
+      recipient_id: job.org.user_id,
       recipient_role: "organization",
       message: `${user.user_metadata?.full_name || "A worker"
         } applied for "${job.title}"`,
       type: "application",
-      related_job_id: id,
+      related_job_id: job.id,
       related_user_id: user.id,
     });
 
-    setHasApplied(true);
     alert("Applied successfully!");
+    setHasApplied(true);
   };
 
-  /* ---------------- UI ---------------- */
-  if (!job) return <p className="p-6">Loading...</p>;
+  /* ---------- UI ---------- */
 
-  const org = job.org_id[0];
+  if (!job) return <p className="p-6">Loading...</p>;
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -159,26 +178,21 @@ export default function JobDetails({
         <p>{job.description}</p>
 
         <div className="mt-6 flex gap-4">
-          {org?.phone && (
-            <a
-              href={`tel:${org.phone}`}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700"
-            >
-              Call Now
-            </a>
-          )}
+          <a
+            href={`tel:${job.org.phone}`}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold"
+          >
+            Call Now
+          </a>
 
           {hasApplied ? (
-            <button
-              disabled
-              className="px-6 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed"
-            >
+            <button disabled className="px-6 py-3 bg-gray-400 text-white rounded-lg">
               Applied
             </button>
           ) : (
             <button
               onClick={handleApply}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg"
             >
               Apply Now
             </button>
