@@ -116,7 +116,7 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
                 recipient_role: "worker",
                 message: `You applied for ${job.title}`,
                 created_at: new Date().toISOString(),
-                is_read: false,
+                read: false,
                 type: "application",
             },
             {
@@ -124,7 +124,7 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
                 recipient_role: "organization",
                 message: `${user.user_metadata?.full_name || "A worker"} applied for ${job.title}`,
                 created_at: new Date().toISOString(),
-                is_read: false,
+                read: false,
                 type: "application",
             },
         ]);
