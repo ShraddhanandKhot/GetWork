@@ -14,11 +14,14 @@ export default function LoginPage() {
   const supabase = createClient();
   const router = useRouter();
 
-  // 🔍 CHECK IF USER IS ALREADY LOGGED IN
+  // 🔍 If already logged in → go to dashboard
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        router.replace("/");
+      const user = data.user;
+
+      if (user) {
+        const role = user.user_metadata?.role;
+        router.replace(role === "organization" ? "/organization" : "/worker");
       } else {
         setCheckingSession(false);
       }
@@ -28,7 +31,7 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -39,13 +42,19 @@ export default function LoginPage() {
       return;
     }
 
-    // ✅ Redirect to root (router page handles rest)
-    router.replace("/");
+    const role = data.user?.user_metadata?.role;
+
+    // ✅ Redirect to dashboard (NOT home)
+    router.replace(role === "organization" ? "/organization" : "/worker");
   };
 
-  // ⏳ Avoid flicker while checking session
+  // ⏳ Avoid flicker
   if (checkingSession) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Checking session...</p>
+      </div>
+    );
   }
 
   return (

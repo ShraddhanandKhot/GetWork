@@ -5,7 +5,6 @@ import { createServerClient } from "@supabase/ssr";
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get("code");
-    const next = searchParams.get("next") ?? "/";
 
     if (!code) {
         return NextResponse.redirect(`${origin}/login`);
@@ -32,6 +31,7 @@ export async function GET(request: Request) {
         }
     );
 
+    // 🔑 Exchange code for session
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
@@ -39,6 +39,18 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/login`);
     }
 
-    // ✅ Session cookie is now correctly set
-    return NextResponse.redirect(`${origin}${next}`);
+    // 🔍 Fetch authenticated user
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    const role = user?.user_metadata?.role;
+
+    // ✅ Redirect directly to dashboard
+    if (role === "organization") {
+        return NextResponse.redirect(`${origin}/organization`);
+    }
+
+    // default → worker
+    return NextResponse.redirect(`${origin}/worker`);
 }
