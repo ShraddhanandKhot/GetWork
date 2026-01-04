@@ -17,6 +17,9 @@ const Home = () => {
 
     // Logged in → send to dashboard
     if (user) {
+      // wait until role is resolved
+      if (role === undefined) return;
+
       if (role === "worker") {
         router.replace("/worker");
         return;
@@ -27,9 +30,10 @@ const Home = () => {
         return;
       }
 
-      // Logged in but profile not created yet
+      // role === null (profile not created yet)
       router.replace("/worker");
     }
+
   }, [user, role, isLoading, router]);
 
   // ⏳ While auth is resolving, avoid flicker
