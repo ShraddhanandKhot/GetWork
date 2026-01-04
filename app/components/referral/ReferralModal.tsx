@@ -11,6 +11,8 @@ interface ReferralModalProps {
 export default function ReferralModal({ jobId, onClose, onSuccess }: ReferralModalProps) {
     const [form, setForm] = useState({
         name: "",
+        email: "",
+        password: "",
         phone: "",
         age: "",
         skills: "",
@@ -32,30 +34,30 @@ export default function ReferralModal({ jobId, onClose, onSuccess }: ReferralMod
                 return;
             }
 
-            const { error } = await supabase.from('referrals').insert({
-                partner_id: user.id,
-                job_id: jobId,
-                candidate_name: form.name,
-                // 🧠 NORMALIZATION
-                candidate_phone: form.phone.replace(/^0+/, ""),
-                candidate_details: {
-                    age: form.age ? Number(form.age) : null,
-                    skills: form.skills ? form.skills.split(",").map(s => s.trim()) : [],
-                    location: form.location,
-                    experience: form.experience
+            const response = await fetch("/api/referral/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
                 },
-                status: 'pending'
+                body: JSON.stringify({
+                    referrer_id: user.id,
+                    job_id: jobId,
+                    ...form,
+                }),
             });
 
-            if (error) {
-                alert("Failed to submit: " + error.message);
-            } else {
-                alert("Referral Submitted Successfully!");
-                onSuccess();
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to submit referral");
             }
-        } catch (err) {
+
+            alert("Referral Submitted Successfully! New worker account created.");
+            onSuccess();
+            onClose();
+        } catch (err: any) {
             console.error(err);
-            alert("Error during submission");
+            alert(err.message || "Error during submission");
         } finally {
             setLoading(false);
         }
@@ -84,6 +86,29 @@ export default function ReferralModal({ jobId, onClose, onSuccess }: ReferralMod
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
                             value={form.name}
                             onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Email Address (for login)</label>
+                        <input
+                            type="email"
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                            value={form.email}
+                            onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Password (for new account)</label>
+                        <input
+                            type="password"
+                            required
+                            minLength={6}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                            value={form.password}
+                            onChange={(e) => setForm({ ...form, password: e.target.value })}
                         />
                     </div>
 
@@ -145,7 +170,7 @@ export default function ReferralModal({ jobId, onClose, onSuccess }: ReferralMod
                             disabled={loading}
                             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                         >
-                            {loading ? "Submitting..." : "Submit Referral"}
+                            {loading ? "Submitting..." : "Submit Referral & Create Account"}
                         </button>
                     </div>
                 </form>
