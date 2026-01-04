@@ -8,37 +8,33 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "./context/AuthContext";
 
 const Home = () => {
-  const { user, role, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   // 🔁 POST-LOGIN / POST-EMAIL-CONFIRMATION ROUTER
   useEffect(() => {
     if (isLoading) return;
 
-    // Logged in → send to dashboard
     if (user) {
-      // wait until role is resolved
-      if (role === undefined) return;
-
-      if (role === "worker") {
-        router.replace("/worker");
-        return;
-      }
+      const role = user.user_metadata?.role;
 
       if (role === "organization") {
         router.replace("/organization");
         return;
       }
 
-      // role === null (profile not created yet)
+      // default → worker
       router.replace("/worker");
     }
+  }, [user, isLoading, router]);
 
-  }, [user, role, isLoading, router]);
-
-  // ⏳ While auth is resolving, avoid flicker
+  // ⏳ Loading state (never return null)
   if (isLoading) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
   }
 
   // 🔓 NOT LOGGED IN → SHOW LANDING PAGE
@@ -114,7 +110,11 @@ const Home = () => {
   }
 
   // Logged in → redirecting
-  return null;
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-500">Redirecting...</p>
+    </div>
+  );
 };
 
 export default Home;
