@@ -68,16 +68,22 @@ export default function ApplicationsPage() {
                 return;
             }
 
-            const normalized: Application[] = data.map(app => ({
-                id: app.id,
-                created_at: app.created_at,
-                status: app.status,
-                job: {
-                    id: app.job.id,
-                    title: app.job.title,
-                    org_name: app.job.org_id?.name,
-                },
-            }));
+            const normalized: Application[] = (data || []).map((app: any) => {
+                const job = Array.isArray(app.job) ? app.job[0] : app.job;
+                const orgData = job?.org_id; // Could be array or object depending on Supabase
+                const org = Array.isArray(orgData) ? orgData[0] : orgData;
+
+                return {
+                    id: app.id,
+                    created_at: app.created_at,
+                    status: app.status,
+                    job: {
+                        id: job?.id,
+                        title: job?.title,
+                        org_name: org?.name || "Unknown",
+                    },
+                };
+            });
 
             setApplications(normalized);
         }
@@ -125,18 +131,25 @@ export default function ApplicationsPage() {
                 return;
             }
 
-            const normalized: Application[] = data
-                .filter(app => app.job.org_id === org.id)
-                .map(app => ({
-                    id: app.id,
-                    created_at: app.created_at,
-                    status: app.status,
-                    job: {
-                        id: app.job.id,
-                        title: app.job.title,
-                    },
-                    worker: app.worker,
-                }));
+            const normalized: Application[] = (data || [])
+                .map((app: any) => {
+                    const job = Array.isArray(app.job) ? app.job[0] : app.job;
+                    return { app, job };
+                })
+                .filter(({ job }) => job?.org_id === org.id)
+                .map(({ app, job }) => {
+                    const worker = Array.isArray(app.worker) ? app.worker[0] : app.worker;
+                    return {
+                        id: app.id,
+                        created_at: app.created_at,
+                        status: app.status,
+                        job: {
+                            id: job?.id,
+                            title: job?.title,
+                        },
+                        worker: worker,
+                    };
+                });
 
             setApplications(normalized);
         }
