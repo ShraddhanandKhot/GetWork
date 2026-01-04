@@ -29,7 +29,7 @@ export default function JobDetails({
 }: {
   params: { id: string };
 }) {
-  const { id } = params; // ✅ FIXED
+  const { id } = params; // ✅ CORRECT
   const [job, setJob] = useState<Job | null>(null);
   const [hasApplied, setHasApplied] = useState(false);
   const router = useRouter();
@@ -65,10 +65,7 @@ export default function JobDetails({
       }
 
       const org = data.org_id?.[0];
-      if (!org) {
-        console.error("Organization missing for job");
-        return;
-      }
+      if (!org) return;
 
       setJob({
         id: data.id,
@@ -106,10 +103,7 @@ export default function JobDetails({
       return;
     }
 
-    if (!job) {
-      alert("Invalid job data");
-      return;
-    }
+    if (!job) return;
 
     const { error } = await supabase.from("job_applications").insert({
       job_id: job.id,
@@ -118,11 +112,7 @@ export default function JobDetails({
     });
 
     if (error) {
-      if (error.code === "23505") {
-        alert("You have already applied to this job.");
-      } else {
-        alert("Failed to apply: " + error.message);
-      }
+      alert(error.message);
       return;
     }
 
@@ -130,10 +120,9 @@ export default function JobDetails({
       {
         recipient_id: user.id,
         recipient_role: "worker",
-        message: `You successfully applied for "${job.title}"`,
+        message: `You applied for "${job.title}"`,
         type: "application",
         related_job_id: job.id,
-        related_user_id: user.id,
       },
       {
         recipient_id: job.org.user_id,
@@ -142,11 +131,9 @@ export default function JobDetails({
           } applied for "${job.title}"`,
         type: "application",
         related_job_id: job.id,
-        related_user_id: user.id,
       },
     ]);
 
-    alert("Applied successfully!");
     setHasApplied(true);
   };
 
@@ -166,16 +153,9 @@ export default function JobDetails({
         {job.title}
       </h1>
 
-      <div className="bg-white p-6 rounded-xl shadow text-gray-900">
+      <div className="bg-white p-6 rounded-xl shadow">
         <p><strong>Location:</strong> {job.location}</p>
-
-        <p className="mt-2">
-          <strong>Salary:</strong>{" "}
-          <span className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full">
-            {job.salary_range}
-          </span>
-        </p>
-
+        <p className="mt-2"><strong>Salary:</strong> {job.salary_range}</p>
         <p><strong>Category:</strong> {job.category}</p>
 
         <h2 className="text-xl font-bold mt-4 mb-2">Description</h2>
@@ -184,16 +164,13 @@ export default function JobDetails({
         <div className="mt-6 flex gap-4">
           <a
             href={`tel:${job.org.phone}`}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold"
+            className="px-6 py-3 bg-green-600 text-white rounded-lg"
           >
             Call Now
           </a>
 
           {hasApplied ? (
-            <button
-              disabled
-              className="px-6 py-3 bg-gray-400 text-white rounded-lg"
-            >
+            <button disabled className="px-6 py-3 bg-gray-400 text-white rounded-lg">
               Applied
             </button>
           ) : (
