@@ -16,7 +16,7 @@ interface RawApplication {
     job: {
         id: string;
         title: string;
-        org_id?: any;
+        org_id: string; // 👈 organization.id
     }[];
     worker?: {
         id: string;
@@ -63,6 +63,20 @@ export default function ApplicationsPage() {
 
         /* ---------- ORGANIZATION VIEW ---------- */
         if (role === "organization") {
+            // 🔑 STEP 1: Get organization.id using user_id
+            const { data: org } = await supabase
+                .from("organizations")
+                .select("id")
+                .eq("user_id", user.id)
+                .single();
+
+            if (!org) {
+                setApplications([]);
+                setLoading(false);
+                return;
+            }
+
+            // 🔑 STEP 2: Fetch applications
             const { data, error } = await supabase
                 .from("job_applications")
                 .select(`
@@ -86,7 +100,8 @@ export default function ApplicationsPage() {
 
             if (!error && data) {
                 const normalized: Application[] = (data as RawApplication[])
-                    .filter(app => app.job?.[0]?.org_id === user.id)
+                    // ✅ CORRECT FILTER (org.id, not user.id)
+                    .filter(app => app.job?.[0]?.org_id === org.id)
                     .map(app => ({
                         id: app.id,
                         created_at: app.created_at,
@@ -122,7 +137,7 @@ export default function ApplicationsPage() {
                 .order("created_at", { ascending: false });
 
             if (!error && data) {
-                const normalized: Application[] = (data as RawApplication[]).map(app => ({
+                const normalized: Application[] = (data as any[]).map(app => ({
                     id: app.id,
                     created_at: app.created_at,
                     status: app.status,
@@ -270,8 +285,8 @@ export default function ApplicationsPage() {
                                             ) : (
                                                 <span
                                                     className={`font-bold ${app.status === "accepted"
-                                                            ? "text-green-600"
-                                                            : "text-red-600"
+                                                        ? "text-green-600"
+                                                        : "text-red-600"
                                                         }`}
                                                 >
                                                     {app.status.toUpperCase()}
@@ -287,10 +302,10 @@ export default function ApplicationsPage() {
                                         Status:{" "}
                                         <span
                                             className={`font-bold ${app.status === "accepted"
-                                                    ? "text-green-600"
-                                                    : app.status === "rejected"
-                                                        ? "text-red-600"
-                                                        : "text-yellow-600"
+                                                ? "text-green-600"
+                                                : app.status === "rejected"
+                                                    ? "text-red-600"
+                                                    : "text-yellow-600"
                                                 }`}
                                         >
                                             {app.status}
