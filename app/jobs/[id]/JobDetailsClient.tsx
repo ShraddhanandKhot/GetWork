@@ -53,7 +53,8 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
                 return;
             }
 
-            const org = data.org_id?.[0];
+            console.log("Job Data:", data);
+            const org = Array.isArray(data.org_id) ? data.org_id[0] : data.org_id;
 
             setJob({
                 id: data.id,
@@ -109,20 +110,28 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
         }
 
         // Notifications
-        await supabase.from("notifications").insert([
+        const { error: notifError } = await supabase.from("notifications").insert([
             {
                 recipient_id: user.id,
                 recipient_role: "worker",
                 message: `You applied for ${job.title}`,
+                created_at: new Date().toISOString(),
+                is_read: false,
                 type: "application",
             },
             {
                 recipient_id: job.org_user_id,
                 recipient_role: "organization",
                 message: `${user.user_metadata?.full_name || "A worker"} applied for ${job.title}`,
+                created_at: new Date().toISOString(),
+                is_read: false,
                 type: "application",
             },
         ]);
+
+        if (notifError) {
+            console.error("Notification insert error:", notifError);
+        }
 
         setHasApplied(true);
     };
