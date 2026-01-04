@@ -43,8 +43,9 @@ export default function ApplicationsPage() {
         if (!user) return;
         setLoading(true);
 
-        /* ===== ORGANIZATION VIEW ===== */
+        /* ================= ORGANIZATION ================= */
         if (role === "organization") {
+            // 1️⃣ Get organization id
             const { data: org } = await supabase
                 .from("organizations")
                 .select("id")
@@ -57,18 +58,31 @@ export default function ApplicationsPage() {
                 return;
             }
 
+            // 2️⃣ Get jobs posted by this org
+            const { data: jobs } = await supabase
+                .from("jobs")
+                .select("id")
+                .eq("org_id", org.id);
+
+            const jobIds = jobs?.map(j => j.id) || [];
+            if (jobIds.length === 0) {
+                setApplications([]);
+                setLoading(false);
+                return;
+            }
+
+            // 3️⃣ Get applications for those jobs
             const { data, error } = await supabase
                 .from("job_applications")
                 .select(`
           id,
           created_at,
           status,
-          job:jobs (
+          jobs (
             id,
-            title,
-            org_id
+            title
           ),
-          worker:workers (
+          workers (
             id,
             name,
             email,
@@ -76,27 +90,26 @@ export default function ApplicationsPage() {
             skills
           )
         `)
+                .in("job_id", jobIds)
                 .order("created_at", { ascending: false });
 
             if (!error && data) {
-                const normalized: Application[] = data
-                    .filter(app => app.job?.[0]?.org_id === org.id)
-                    .map(app => ({
-                        id: app.id,
-                        created_at: app.created_at,
-                        status: app.status,
-                        job: {
-                            id: app.job[0].id,
-                            title: app.job[0].title,
-                        },
-                        worker: app.worker?.[0],
-                    }));
+                const normalized: Application[] = data.map(app => ({
+                    id: app.id,
+                    created_at: app.created_at,
+                    status: app.status,
+                    job: {
+                        id: app.jobs[0].id,
+                        title: app.jobs[0].title,
+                    },
+                    worker: app.workers[0],
+                }));
 
                 setApplications(normalized);
             }
         }
 
-        /* ===== WORKER VIEW ===== */
+        /* ================= WORKER ================= */
         else {
             const { data, error } = await supabase
                 .from("job_applications")
@@ -104,7 +117,7 @@ export default function ApplicationsPage() {
           id,
           created_at,
           status,
-          job:jobs (
+          jobs (
             id,
             title,
             organizations (
@@ -121,9 +134,9 @@ export default function ApplicationsPage() {
                     created_at: app.created_at,
                     status: app.status,
                     job: {
-                        id: app.job[0].id,
-                        title: app.job[0].title,
-                        org_name: app.job[0].organizations?.[0]?.name,
+                        id: app.jobs[0].id,
+                        title: app.jobs[0].title,
+                        org_name: app.jobs[0].organizations?.[0]?.name,
                     },
                 }));
 
@@ -156,8 +169,8 @@ export default function ApplicationsPage() {
             recipient_role: "worker",
             message:
                 status === "accepted"
-                    ? `Your application for ${jobTitle} was accepted 🎉`
-                    : `Your application for ${jobTitle} was rejected`,
+                    ? `Your application for "${jobTitle}" was accepted 🎉`
+                    : `Your application for "${jobTitle}" was rejected`,
             type: "application",
             action_status: status,
         });
@@ -206,7 +219,7 @@ export default function ApplicationsPage() {
                                     </span>
                                 </div>
 
-                                {/* ORGANIZATION */}
+                                {/* ORGANIZATION VIEW */}
                                 {role === "organization" && app.worker && (
                                     <div className="mt-4 bg-gray-50 p-4 rounded-lg">
                                         <p className="font-bold">{app.worker.name}</p>
@@ -251,7 +264,7 @@ export default function ApplicationsPage() {
                                     </div>
                                 )}
 
-                                {/* WORKER */}
+                                {/* WORKER VIEW */}
                                 {role !== "organization" && (
                                     <div className="mt-3">
                                         Status: <b>{app.status}</b>
