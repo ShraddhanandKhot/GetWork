@@ -96,7 +96,7 @@ export default function LoginPage() {
             Register
           </Link>
         </p>
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-center mb-4">
           <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
             Forgot Password?
           </Link>
