@@ -23,6 +23,7 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
     const router = useRouter();
     const supabase = createClient();
 
+    /* ---------- FETCH JOB ---------- */
     useEffect(() => {
         if (!jobId) {
             setError("Invalid job id");
@@ -45,15 +46,14 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
           )
         `)
                 .eq("id", jobId)
-                .maybeSingle();
+                .single();
 
             if (error || !data) {
-                console.error("Job fetch failed:", error);
+                console.error(error);
                 setError("Job not found");
                 return;
             }
 
-            console.log("Job Data:", data);
             const org = Array.isArray(data.org_id) ? data.org_id[0] : data.org_id;
 
             setJob({
@@ -67,40 +67,56 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
                 org_user_id: org?.user_id,
             });
 
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
+            // check if already applied
+            const { data: auth } = await supabase.auth.getUser();
+            if (!auth.user) return;
 
-            if (user) {
-                const { data: applied } = await supabase
-                    .from("job_applications")
-                    .select("id")
-                    .eq("job_id", jobId)
-                    .eq("worker_id", user.id)
-                    .maybeSingle();
+            const { data: worker } = await supabase
+                .from("workers")
+                .select("id")
+                .eq("user_id", auth.user.id)
+                .single();
 
-                if (applied) setHasApplied(true);
-            }
+            if (!worker) return;
+
+            const { data: applied } = await supabase
+                .from("job_applications")
+                .select("id")
+                .eq("job_id", jobId)
+                .eq("worker_id", worker.id)
+                .maybeSingle();
+
+            if (applied) setHasApplied(true);
         };
 
         fetchData();
     }, [jobId]);
 
+    /* ---------- APPLY ---------- */
     const handleApply = async () => {
-        const {
-            data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
+        const { data: auth } = await supabase.auth.getUser();
+        if (!auth.user) {
             router.push("/login");
             return;
         }
 
         if (!job) return;
 
+        // 🔑 FIX: map auth user → workers.id
+        const { data: worker } = await supabase
+            .from("workers")
+            .select("id")
+            .eq("user_id", auth.user.id)
+            .single();
+
+        if (!worker) {
+            alert("Worker profile not found");
+            return;
+        }
+
         const { error } = await supabase.from("job_applications").insert({
             job_id: job.id,
-            worker_id: user.id,
+            worker_id: worker.id, // ✅ CORRECT
             status: "pending",
         });
 
@@ -109,56 +125,35 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
             return;
         }
 
-        // Notifications
-        const { error: notifError } = await supabase.from("notifications").insert([
-            {
-                recipient_id: user.id,
-                recipient_role: "worker",
-                message: `You applied for ${job.title}`,
-                created_at: new Date().toISOString(),
-                read: false,
-                type: "application",
-            },
-            {
+        // Worker notification
+        await supabase.from("notifications").insert({
+            recipient_id: auth.user.id,
+            recipient_role: "worker",
+            message: `You applied for ${job.title}`,
+            type: "application",
+        });
+
+        // Org notification
+        if (job.org_user_id) {
+            await supabase.from("notifications").insert({
                 recipient_id: job.org_user_id,
                 recipient_role: "organization",
-                message: `${user.user_metadata?.full_name || "A worker"} applied for ${job.title}`,
-                created_at: new Date().toISOString(),
-                read: false,
+                message: `${auth.user.user_metadata?.full_name || "A worker"} applied for ${job.title}`,
                 type: "application",
-            },
-        ]);
-
-        if (notifError) {
-            console.error("Notification insert error:", notifError);
+            });
         }
 
         setHasApplied(true);
+        alert("Applied successfully!");
     };
 
-    /* ---------- UI STATES ---------- */
-
-    if (error) {
-        return (
-            <div className="p-10 text-center text-red-600">
-                {error}
-            </div>
-        );
-    }
-
-    if (!job) {
-        return (
-            <div className="p-10 text-center text-gray-500">
-                Loading job…
-            </div>
-        );
-    }
+    /* ---------- UI ---------- */
+    if (error) return <div className="p-10 text-red-600">{error}</div>;
+    if (!job) return <div className="p-10 text-gray-500">Loading job…</div>;
 
     return (
         <div className="min-h-screen p-6 bg-gray-50">
-            <h1 className="text-3xl font-bold text-blue-600 mb-6">
-                {job.title}
-            </h1>
+            <h1 className="text-3xl font-bold text-blue-600 mb-6">{job.title}</h1>
 
             <div className="bg-white p-6 rounded-xl shadow">
                 <p><b>Location:</b> {job.location}</p>
@@ -170,10 +165,7 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
 
                 <div className="mt-6 flex gap-4">
                     {job.phone && (
-                        <a
-                            href={`tel:${job.phone}`}
-                            className="px-6 py-3 bg-green-600 text-white rounded-lg"
-                        >
+                        <a href={`tel:${job.phone}`} className="px-6 py-3 bg-green-600 text-white rounded-lg">
                             Call Now
                         </a>
                     )}
@@ -183,10 +175,7 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
                             Applied
                         </button>
                     ) : (
-                        <button
-                            onClick={handleApply}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg"
-                        >
+                        <button onClick={handleApply} className="px-6 py-3 bg-blue-600 text-white rounded-lg">
                             Apply Now
                         </button>
                     )}
