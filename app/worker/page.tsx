@@ -138,18 +138,18 @@ export default function WorkerDashboard() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header Card */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl shadow-lg p-8 mb-8 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 mb-8 text-white relative overflow-hidden">
           {/* Decorative circles */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-2xl"></div>
 
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <p className="text-emerald-100 font-medium mb-1">Welcome back,</p>
+              <p className="text-blue-100 font-medium mb-1">Welcome back,</p>
               <h1 className="text-4xl font-bold tracking-tight">
                 {profile.name}
               </h1>
-              <p className="text-emerald-100 text-sm mt-2 opacity-90 flex items-center gap-2">
+              <p className="text-blue-100 text-sm mt-2 opacity-90 flex items-center gap-2">
                 <span className="bg-white/20 px-2 py-0.5 rounded text-xs uppercase tracking-wider font-semibold">Worker</span>
                 Dashboard
               </p>
@@ -158,7 +158,7 @@ export default function WorkerDashboard() {
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               <button
                 onClick={() => (window.location.href = "/worker/edit")}
-                className="flex items-center justify-center gap-2 bg-white text-emerald-700 px-6 py-3 rounded-xl font-bold hover:bg-emerald-50 transition shadow-sm w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 bg-white text-blue-700 px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition shadow-sm w-full sm:w-auto"
               >
                 Edit Profile
               </button>
@@ -174,15 +174,15 @@ export default function WorkerDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-8 mt-8 border-t border-white/20 relative z-10">
             <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-              <span className="block text-xs text-emerald-200 uppercase tracking-wider font-semibold mb-1">Age</span>
+              <span className="block text-xs text-blue-200 uppercase tracking-wider font-semibold mb-1">Age</span>
               <span className="text-white font-medium">{profile.age ?? "—"}</span>
             </div>
             <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm md:col-span-2">
-              <span className="block text-xs text-emerald-200 uppercase tracking-wider font-semibold mb-1">Skills</span>
+              <span className="block text-xs text-blue-200 uppercase tracking-wider font-semibold mb-1">Skills</span>
               <span className="text-white font-medium">{profile.skills.join(", ") || "—"}</span>
             </div>
             <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-              <span className="block text-xs text-emerald-200 uppercase tracking-wider font-semibold mb-1">Location</span>
+              <span className="block text-xs text-blue-200 uppercase tracking-wider font-semibold mb-1">Location</span>
               <span className="text-white font-medium">{profile.location || "—"}</span>
             </div>
           </div>
