@@ -19,6 +19,7 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
     const [job, setJob] = useState<Job | null>(null);
     const [hasApplied, setHasApplied] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isOrg, setIsOrg] = useState(false);
 
     const router = useRouter();
     const supabase = createClient();
@@ -89,7 +90,15 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
             if (applied) setHasApplied(true);
         };
 
+        const checkUserRole = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.user_metadata?.role === 'organization') {
+                setIsOrg(true);
+            }
+        }
+
         fetchData();
+        checkUserRole();
     }, [jobId]);
 
     /* ---------- APPLY ---------- */
@@ -171,11 +180,20 @@ export default function JobDetailsClient({ jobId }: { jobId: string }) {
                     )}
 
                     {hasApplied ? (
-                        <button disabled className="px-6 py-3 bg-gray-400 text-white rounded-lg">
+                        <button disabled className="px-6 py-3 bg-gray-400 text-white rounded-lg cursor-not-allowed">
                             Applied
                         </button>
+                    ) : isOrg ? (
+                        <div className="group relative">
+                            <button disabled className="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed">
+                                Apply Now
+                            </button>
+                            <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                Organizations cannot apply
+                            </span>
+                        </div>
                     ) : (
-                        <button onClick={handleApply} className="px-6 py-3 bg-blue-600 text-white rounded-lg">
+                        <button onClick={handleApply} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                             Apply Now
                         </button>
                     )}

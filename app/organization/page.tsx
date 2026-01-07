@@ -183,52 +183,68 @@ export default function OrganizationPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header Card */}
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <div className="flex justify-between items-start mb-6">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-8 mb-8 text-white relative overflow-hidden">
+          {/* Decorative circles */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/3 blur-2xl"></div>
+
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-1">
+              <p className="text-blue-100 font-medium mb-1">Welcome back,</p>
+              <h1 className="text-4xl font-bold tracking-tight">
                 {org.name}
               </h1>
-              <p className="text-gray-500 text-sm">Organization Dashboard</p>
+              <p className="text-blue-100 text-sm mt-2 opacity-90 flex items-center gap-2">
+                <span className="bg-white/20 px-2 py-0.5 rounded text-xs uppercase tracking-wider font-semibold">Organization</span>
+                Dashboard
+              </p>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               <button
                 onClick={() => setShowPostJob(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
+                className="flex items-center justify-center gap-2 bg-white text-blue-700 px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition shadow-sm w-full sm:w-auto"
               >
-                <PlusCircle size={18} />
-                Post Job
+                <PlusCircle size={20} />
+                Post New Job
               </button>
               <button
                 onClick={logout}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
+                className="flex items-center justify-center gap-2 px-6 py-3 text-white bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition backdrop-blur-sm w-full sm:w-auto"
               >
-                <LogOut size={18} />
+                <LogOut size={20} />
                 Logout
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-100">
-            <div>
-              <span className="block text-xs text-gray-400 uppercase tracking-wider font-semibold">Email</span>
-              <span className="text-gray-700">{org.email}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 mt-8 border-t border-white/20 relative z-10">
+            <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+              <span className="block text-xs text-blue-200 uppercase tracking-wider font-semibold mb-1">Email</span>
+              <span className="text-white font-medium break-all">{org.email}</span>
             </div>
-            <div>
-              <span className="block text-xs text-gray-400 uppercase tracking-wider font-semibold">Phone</span>
-              <span className="text-gray-700">{org.phone || "-"}</span>
+            <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+              <span className="block text-xs text-blue-200 uppercase tracking-wider font-semibold mb-1">Phone</span>
+              <span className="text-white font-medium">{org.phone || "-"}</span>
             </div>
-            <div>
-              <span className="block text-xs text-gray-400 uppercase tracking-wider font-semibold">Location</span>
-              <span className="text-gray-700">{org.location || "-"}</span>
+            <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+              <span className="block text-xs text-blue-200 uppercase tracking-wider font-semibold mb-1">Location</span>
+              <span className="text-white font-medium">{org.location || "-"}</span>
             </div>
           </div>
         </div>
 
         {/* Jobs Section */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Posted Jobs</h2>
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Your Posted Jobs</h2>
+            <button
+              onClick={() => setShowPostJob(true)}
+              className="text-sm font-semibold text-blue-600 hover:text-blue-800 md:hidden"
+            >
+              + New Job
+            </button>
+          </div>
 
           {jobs.length === 0 ? (
             <div className="bg-white p-10 rounded-xl text-center border border-dashed border-gray-300">
