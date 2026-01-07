@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 // import { useAuth } from "@/app/context/AuthContext"; // Optional if you need user verification
 
-export default function EditJobPage({ params }: { params: { id: string } }) {
+export default function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const supabase = createClient();
-    const { id } = params;
+    const { id } = use(params);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
